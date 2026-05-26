@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Squad Gym</title>
+<link rel="manifest" href="manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -72,17 +73,14 @@ label{font-size:12px;font-weight:600;color:#585870;letter-spacing:.4px;text-tran
 .modal{background:#111118;border-radius:24px;padding:24px;margin:16px;max-height:90vh;overflow-y:auto}
 .overlay-center{justify-content:center;align-items:center}
 
-.section-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:#F0F0F4;margin-bottom:4px}
-.section-sub{font-size:13px;color:#585870;margin-bottom:16px}
-
 .avatar{border-radius:50%;object-fit:cover;background:#18181F;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-weight:400;color:#F0F0F4;flex-shrink:0;overflow:hidden}
 
-.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:280px;margin:0 auto}
-.numpad-key{height:64px;background:#18181F;border:1px solid #1E1E28;border-radius:16px;font-size:24px;font-weight:600;color:#F0F0F4;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s;user-select:none;-webkit-user-select:none}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:340px;margin:0 auto}
+.numpad-key{height:80px;background:#18181F;border:1px solid #1E1E28;border-radius:18px;font-size:28px;font-weight:600;color:#F0F0F4;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s;user-select:none;-webkit-user-select:none}
 .numpad-key:active{background:#E53935;border-color:#E53935;transform:scale(.94)}
 
-.pin-dots{display:flex;gap:14px;justify-content:center;margin:24px 0}
-.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid #2A2A38;transition:all .2s}
+.pin-dots{display:flex;gap:16px;justify-content:center;margin:28px 0}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid #2A2A38;transition:all .2s}
 .pin-dot.filled{background:#E53935;border-color:#E53935}
 
 .custom-select-trigger{background:#18181F;border:1px solid #1E1E28;border-radius:12px;padding:14px 16px;font-size:14px;color:#F0F0F4;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:border .15s;width:100%}
@@ -92,35 +90,31 @@ label{font-size:12px;font-weight:600;color:#585870;letter-spacing:.4px;text-tran
 .custom-select-option:active{background:#18181F}
 .custom-select-option.selected{color:#E53935}
 
-.check-ring{width:56px;height:56px;border-radius:50%;border:3px solid #1E1E28;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0}
-.check-ring.done{background:rgba(34,197,94,.1);border-color:#22C55E}
-.check-ring.missed{background:rgba(229,57,53,.08);border-color:#E53935}
+.cal-day{height:38px;display:flex;align-items:center;justify-content:center;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;transition:all .12s;user-select:none;-webkit-user-select:none}
+.cal-day:active{opacity:.7}
+.cal-day.selected{background:#E53935;color:#fff}
+.cal-day.today{border:1px solid #E53935;color:#E53935}
+.cal-day.today.selected{color:#fff}
+.cal-day.empty{cursor:default}
 
 .streak-badge{background:rgba(229,57,53,.12);border:1px solid rgba(229,57,53,.2);border-radius:10px;padding:4px 10px;font-size:12px;font-weight:700;color:#E53935}
 
 .progress-bar-bg{height:6px;background:#1E1E28;border-radius:3px;overflow:hidden}
 .progress-bar-fill{height:100%;background:#E53935;border-radius:3px;transition:width .4s}
 
-.tab-pills{display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto;scrollbar-width:none}
-.tab-pills::-webkit-scrollbar{display:none}
-.tab-pill{padding:8px 16px;border-radius:100px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;background:#18181F;color:#585870;border:1px solid #1E1E28;transition:all .15s;user-select:none;-webkit-user-select:none}
-.tab-pill.active{background:rgba(229,57,53,.12);color:#E53935;border-color:rgba(229,57,53,.25)}
-
 .empty-state{padding:48px 24px;text-align:center;color:#585870}
 .empty-state-title{font-size:16px;font-weight:600;margin-bottom:8px;color:#F0F0F4}
-
-.pt-safe{padding-top:env(safe-area-inset-top)}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState,useEffect,useRef,useCallback,useMemo}=React;
+const {useState,useEffect,useRef,useCallback}=React;
 
 const SB_URL='https://brgetggvmoskbfahhugo.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyZ2V0Z2d2bW9za2JmYWhodWdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MzQwMDEsImV4cCI6MjA5NTMxMDAwMX0.ewxljMGZkS8026bEOvtrm3rXtVg-ZSz_jMoJXWxv680';
 const PIN='4321';
-const MEMBERS=['Indy','Ricrd','Ondra','Pepa'];
+const MEMBERS=['Indy','Ričrd','Ondra','Pepa'];
 
 const C={
   bg:'#0A0A0F',s1:'#111118',s2:'#18181F',border:'#1E1E28',
@@ -130,11 +124,14 @@ const C={
 
 const SCHEDULE=[
   {day:1,name:'Gym',time:'10:00',type:'gym'},
-  {day:2,name:'Kalistenika + Beh',time:'10:00',type:'cali'},
-  {day:4,name:'Gym + Beh',time:'10:00',type:'gym'},
-  {day:5,name:'Gym + Beh',time:'10:00',type:'gym'},
-  {day:6,name:'Plavani',time:'18:00',type:'swim'},
+  {day:2,name:'Kalistenie + Běh',time:'10:00',type:'cali'},
+  {day:4,name:'Gym + Běh',time:'10:00',type:'gym'},
+  {day:5,name:'Gym + Běh',time:'10:00',type:'gym'},
+  {day:6,name:'Plavání',time:'18:00',type:'swim'},
 ];
+
+const MONTHS_CS=['ľden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
+const DAYS_CS=['Po','Út','St','Čt','Pá','So','Ne'];
 
 function todayStr(){
   const d=new Date();
@@ -152,13 +149,11 @@ async function upsertCI(gc,member,dateStr,status,note=''){
   );
   return error;
 }
-
 async function loadCI(gc){
   const sb=initSB();
   const {data}=await sb.from('sg_checkins').select('*').eq('group_code',gc);
   return data||[];
 }
-
 async function upsertPR(gc,member,exercise,value,unit){
   const sb=initSB();
   const {error}=await sb.from('sg_prs').upsert(
@@ -167,13 +162,11 @@ async function upsertPR(gc,member,exercise,value,unit){
   );
   return error;
 }
-
 async function loadPRs(gc){
   const sb=initSB();
   const {data}=await sb.from('sg_prs').select('*').eq('group_code',gc);
   return data||[];
 }
-
 async function upsertProfile(gc,member,avatarData){
   const sb=initSB();
   const {error}=await sb.from('sg_profiles').upsert(
@@ -182,13 +175,11 @@ async function upsertProfile(gc,member,avatarData){
   );
   return error;
 }
-
 async function loadProfiles(gc){
   const sb=initSB();
   const {data}=await sb.from('sg_profiles').select('*').eq('group_code',gc);
   return data||[];
 }
-
 async function insertChallenge(gc,data){
   const sb=initSB();
   const {data:d,error}=await sb.from('sg_challenges').insert({
@@ -196,19 +187,16 @@ async function insertChallenge(gc,data){
   }).select().single();
   return {data:d,error};
 }
-
 async function loadChallenges(gc){
   const sb=initSB();
   const {data}=await sb.from('sg_challenges').select('*').eq('group_code',gc).eq('active',true).order('created_at',{ascending:false});
   return data||[];
 }
-
 async function loadChallengeProgress(gc){
   const sb=initSB();
   const {data}=await sb.from('sg_challenge_progress').select('*').eq('group_code',gc);
   return data||[];
 }
-
 async function upsertProgress(challengeId,gc,member,value){
   const sb=initSB();
   const {error}=await sb.from('sg_challenge_progress').upsert(
@@ -220,65 +208,46 @@ async function upsertProgress(challengeId,gc,member,value){
 
 function subscribeCI(gc,cb){
   const sb=initSB();
-  return sb.channel('ci_'+gc)
-    .on('postgres_changes',{event:'*',schema:'public',table:'sg_checkins',filter:`group_code=eq.${gc}`},cb)
-    .subscribe();
+  return sb.channel('ci_'+gc).on('postgres_changes',{event:'*',schema:'public',table:'sg_checkins',filter:`group_code=eq.${gc}`},cb).subscribe();
 }
 function subscribePRs(gc,cb){
   const sb=initSB();
-  return sb.channel('pr_'+gc)
-    .on('postgres_changes',{event:'*',schema:'public',table:'sg_prs',filter:`group_code=eq.${gc}`},cb)
-    .subscribe();
+  return sb.channel('pr_'+gc).on('postgres_changes',{event:'*',schema:'public',table:'sg_prs',filter:`group_code=eq.${gc}`},cb).subscribe();
 }
 function subscribeProfiles(gc,cb){
   const sb=initSB();
-  return sb.channel('prof_'+gc)
-    .on('postgres_changes',{event:'*',schema:'public',table:'sg_profiles',filter:`group_code=eq.${gc}`},cb)
-    .subscribe();
+  return sb.channel('prof_'+gc).on('postgres_changes',{event:'*',schema:'public',table:'sg_profiles',filter:`group_code=eq.${gc}`},cb).subscribe();
 }
 function subscribeChallenges(gc,cb){
   const sb=initSB();
-  return sb.channel('ch_'+gc)
-    .on('postgres_changes',{event:'*',schema:'public',table:'sg_challenges',filter:`group_code=eq.${gc}`},cb)
-    .subscribe();
+  return sb.channel('ch_'+gc).on('postgres_changes',{event:'*',schema:'public',table:'sg_challenges',filter:`group_code=eq.${gc}`},cb).subscribe();
 }
 
 function calcScore(cis,member){
   const sorted=[...cis.filter(c=>c.member===member&&c.status!=='none')].sort((a,b)=>a.date>b.date?1:-1);
   let score=0,streak=0,maxStreak=0;
   sorted.forEach(c=>{
-    if(c.status==='done'){
+    if(c.status==='done'||c.status==='pr'){
       streak++;
       if(streak>maxStreak)maxStreak=streak;
       const mult=streak>=7?3:streak>=3?2:1;
-      score+=10*mult;
-      if(c.note)score+=2;
-    } else if(c.status==='pr'){
-      streak++;
-      if(streak>maxStreak)maxStreak=streak;
-      const mult=streak>=7?3:streak>=3?2:1;
-      score+=10*mult+5;
+      score+=10*mult+(c.status==='pr'?5:0);
       if(c.note)score+=2;
     } else if(c.status==='missed'){
-      streak=0;
-      score-=5;
-    } else if(c.status==='excused'){
-      // no change
+      streak=0;score-=5;
     }
   });
   return {score,streak,maxStreak};
 }
-
 function calcCurrentStreak(cis,member){
   const sorted=[...cis.filter(c=>c.member===member&&c.status!=='none')].sort((a,b)=>a.date>b.date?-1:1);
   let streak=0;
   for(const c of sorted){
-    if(c.status==='done'||c.status==='pr'){streak++;}
-    else if(c.status==='missed'){break;}
+    if(c.status==='done'||c.status==='pr')streak++;
+    else if(c.status==='missed')break;
   }
   return streak;
 }
-
 async function resizeImage(file,size=120){
   return new Promise(resolve=>{
     const reader=new FileReader();
@@ -289,9 +258,8 @@ async function resizeImage(file,size=120){
         canvas.width=size;canvas.height=size;
         const ctx=canvas.getContext('2d');
         const s=Math.min(img.width,img.height);
-        const ox=(img.width-s)/2,oy=(img.height-s)/2;
-        ctx.drawImage(img,ox,oy,s,s,0,0,size,size);
-        resolve(canvas.toDataURL('image/jpeg',0.8));
+        ctx.drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,size,size);
+        resolve(canvas.toDataURL('image/jpeg',.8));
       };
       img.src=e.target.result;
     };
@@ -299,25 +267,27 @@ async function resizeImage(file,size=120){
   });
 }
 
-// --- Icons ---
+// ── Icons ──────────────────────────────────────────────
 const IcoCheck=()=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
 const IcoX=()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 const IcoChevDown=()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>;
+const IcoChevLeft=()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>;
+const IcoChevRight=()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>;
 const IcoDel=()=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>;
-const IcoCamera=()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>;
+const IcoCamera=()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>;
 const IcoPlus=()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
 const IcoTrophy=()=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>;
-const IcoFlame=()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>;
-const IcoStar=()=><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+const IcoFlame=()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>;
 const IcoTarget=()=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>;
+const IcoCal=()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
 
-// --- CustomSelect ---
+// ── CustomSelect ───────────────────────────────────────
 function CustomSelect({value,onChange,options,placeholder='Vyber...'}){
   const [open,setOpen]=useState(false);
-  const selected=options.find(o=>o.value===value);
+  const sel=options.find(o=>o.value===value);
   return <>
     <div className="custom-select-trigger" onClick={()=>setOpen(true)}>
-      <span style={{color:selected?C.text:C.dim}}>{selected?selected.label:placeholder}</span>
+      <span style={{color:sel?C.text:C.dim}}>{sel?sel.label:placeholder}</span>
       <span style={{color:C.dim}}><IcoChevDown/></span>
     </div>
     {open&&<div className="overlay" onClick={()=>setOpen(false)}>
@@ -332,14 +302,75 @@ function CustomSelect({value,onChange,options,placeholder='Vyber...'}){
   </>;
 }
 
-// --- Avatar ---
+// ── CustomDatePicker ───────────────────────────────────
+function CustomDatePicker({value,onChange,placeholder='Vyber datum...'}){
+  const [open,setOpen]=useState(false);
+  const now=new Date();
+  const parseVal=v=>v?{y:parseInt(v.split('-')[0]),m:parseInt(v.split('-')[1])-1,d:parseInt(v.split('-')[2])}:null;
+  const pv=parseVal(value);
+  const [viewY,setViewY]=useState(pv?pv.y:now.getFullYear());
+  const [viewM,setViewM]=useState(pv?pv.m:now.getMonth());
+
+  const todayY=now.getFullYear(),todayM=now.getMonth(),todayD=now.getDate();
+  const daysInMonth=new Date(viewY,viewM+1,0).getDate();
+  const firstDow=new Date(viewY,viewM,1).getDay();
+  const startPad=firstDow===0?6:firstDow-1;
+
+  const cells=[];
+  for(let i=0;i<startPad;i++)cells.push(null);
+  for(let d=1;d<=daysInMonth;d++)cells.push(d);
+
+  const select=d=>{
+    onChange(`${viewY}-${String(viewM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+    setOpen(false);
+  };
+  const prevM=()=>{if(viewM===0){setViewM(11);setViewY(y=>y-1);}else setViewM(m=>m-1);};
+  const nextM=()=>{if(viewM===11){setViewM(0);setViewY(y=>y+1);}else setViewM(m=>m+1);};
+
+  const displayValue=pv?`${pv.d}. ${MONTHS_CS[pv.m]} ${pv.y}`:null;
+  const selD=pv&&pv.y===viewY&&pv.m===viewM?pv.d:null;
+
+  return <>
+    <div className="custom-select-trigger" onClick={()=>setOpen(true)}>
+      <span style={{color:displayValue?C.text:C.dim,display:'flex',alignItems:'center',gap:8}}>
+        <span style={{color:C.dim,display:'flex'}}><IcoCal/></span>
+        {displayValue||placeholder}
+      </span>
+      <span style={{color:C.dim}}><IcoChevDown/></span>
+    </div>
+    {open&&<div className="overlay" onClick={()=>setOpen(false)}>
+      <div className="sheet" onClick={e=>e.stopPropagation()}>
+        <div className="sheet-handle"/>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+          <button className="btn btn-secondary btn-sm" style={{width:44,minWidth:44,padding:0}} onClick={prevM}><IcoChevLeft/></button>
+          <div style={{fontFamily:'Bebas Neue',fontSize:20,letterSpacing:1}}>{MONTHS_CS[viewM]} {viewY}</div>
+          <button className="btn btn-secondary btn-sm" style={{width:44,minWidth:44,padding:0}} onClick={nextM}><IcoChevRight/></button>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:6}}>
+          {DAYS_CS.map(d=><div key={d} style={{textAlign:'center',fontSize:11,color:C.dim,fontWeight:600,padding:'4px 0'}}>{d}</div>)}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:16}}>
+          {cells.map((d,i)=>{
+            const isToday=d&&viewY===todayY&&viewM===todayM&&d===todayD;
+            const isSel=d&&d===selD;
+            return <div key={i} className={`cal-day${d?'':'  empty'}${isSel?' selected':isToday?' today':''}`} onClick={d?()=>select(d):undefined} style={{color:!d?'transparent':isSel?'#fff':isToday?C.merlot:C.text}}>
+              {d||''}
+            </div>;
+          })}
+        </div>
+        {value&&<button className="btn btn-secondary" style={{width:'100%'}} onClick={()=>{onChange('');setOpen(false);}}>Zrušit datum</button>}
+      </div>
+    </div>}
+  </>;
+}
+
+// ── Avatar ─────────────────────────────────────────────
 function Av({member,size=40,avatar,showStatus,checkins}){
   const initials=member?member.slice(0,2).toUpperCase():'?';
   const streak=checkins?calcCurrentStreak(checkins,member):0;
   const ringColor=streak>=3?C.merlot:C.border;
-  const style={width:size,height:size,fontSize:size*0.36};
   return <div style={{position:'relative',display:'inline-flex',flexShrink:0}}>
-    <div className="avatar" style={{...style,border:`2px solid ${ringColor}`}}>
+    <div className="avatar" style={{width:size,height:size,fontSize:size*.36,border:`2px solid ${ringColor}`}}>
       {avatar?<img src={avatar} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={member}/>:initials}
     </div>
     {showStatus&&streak>=3&&<div style={{position:'absolute',bottom:-2,right:-2,width:16,height:16,background:C.merlot,borderRadius:'50%',border:`2px solid ${C.bg}`,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff'}}>
@@ -348,7 +379,7 @@ function Av({member,size=40,avatar,showStatus,checkins}){
   </div>;
 }
 
-// --- PIN Screen ---
+// ── PIN Screen ─────────────────────────────────────────
 function PinScreen({onAuth}){
   const [pin,setPin]=useState('');
   const [shake,setShake]=useState(false);
@@ -356,43 +387,42 @@ function PinScreen({onAuth}){
     if(pin.length>=4)return;
     const next=pin+d;
     if(next.length===4){
-      if(next===PIN){onAuth();}
+      if(next===PIN)onAuth();
       else{setShake(true);setTimeout(()=>{setPin('');setShake(false);},600);}
     } else setPin(next);
   };
-  const del=()=>setPin(p=>p.slice(0,-1));
-  return <div style={{height:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 24px',background:C.bg}}>
-    <div style={{fontFamily:'Bebas Neue',fontSize:32,letterSpacing:3,color:C.text,marginBottom:4}}>SQUAD GYM</div>
-    <div style={{fontSize:13,color:C.dim,marginBottom:32}}>zadej PIN</div>
-    <div className={`pin-dots${shake?' shake':''}`} style={shake?{animation:'shake .4s'}:{}}>
+  return <div style={{height:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 20px',background:C.bg}}>
+    <div style={{fontFamily:'Bebas Neue',fontSize:34,letterSpacing:3,color:C.text,marginBottom:4}}>SQUAD GYM</div>
+    <div style={{fontSize:13,color:C.dim,marginBottom:8}}>zadej PIN</div>
+    <div className={`pin-dots`} style={shake?{animation:'shake .4s'}:{}}>
       {[0,1,2,3].map(i=><div key={i} className={`pin-dot${pin.length>i?' filled':''}`}/>)}
     </div>
-    <div className="numpad" style={{marginTop:8}}>
+    <div className="numpad" style={{marginTop:4}}>
       {[1,2,3,4,5,6,7,8,9].map(n=><div key={n} className="numpad-key" onClick={()=>append(String(n))}>{n}</div>)}
       <div/>
       <div className="numpad-key" onClick={()=>append('0')}>0</div>
-      <div className="numpad-key" onClick={del}><IcoDel/></div>
+      <div className="numpad-key" onClick={()=>setPin(p=>p.slice(0,-1))}><IcoDel/></div>
     </div>
-    <style>{`@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}`}</style>
+    <style>{`@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}`}</style>
   </div>;
 }
 
-// --- Member Select ---
+// ── Member Select ──────────────────────────────────────
 function MemberSelect({onSelect,profiles}){
   const getAv=m=>profiles.find(p=>p.member===m)?.avatar_data;
   return <div style={{height:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 24px',background:C.bg}}>
-    <div style={{fontFamily:'Bebas Neue',fontSize:32,letterSpacing:3,color:C.text,marginBottom:4}}>SQUAD GYM</div>
-    <div style={{fontSize:13,color:C.dim,marginBottom:32}}>kdo trenujes?</div>
-    <div style={{display:'flex',flexDirection:'column',gap:12,width:'100%',maxWidth:280}}>
+    <div style={{fontFamily:'Bebas Neue',fontSize:34,letterSpacing:3,color:C.text,marginBottom:4}}>SQUAD GYM</div>
+    <div style={{fontSize:13,color:C.dim,marginBottom:32}}>kdo trénuješ?</div>
+    <div style={{display:'flex',flexDirection:'column',gap:12,width:'100%',maxWidth:300}}>
       {MEMBERS.map(m=><button key={m} className="btn btn-secondary" style={{justifyContent:'flex-start',gap:14,paddingLeft:16}} onClick={()=>onSelect(m)}>
         <Av member={m} size={36} avatar={getAv(m)}/>
-        <span style={{fontSize:16,fontWeight:700,letterSpacing:.5}}>{m}</span>
+        <span style={{fontSize:16,fontWeight:700}}>{m}</span>
       </button>)}
     </div>
   </div>;
 }
 
-// --- Today View ---
+// ── Today View ─────────────────────────────────────────
 function TodayView({gc,member,checkins,profiles,refreshCI}){
   const session=getTodaySession();
   const today=todayStr();
@@ -401,6 +431,7 @@ function TodayView({gc,member,checkins,profiles,refreshCI}){
   const [excuseModal,setExcuseModal]=useState(false);
   const [note,setNote]=useState('');
   const [loading,setLoading]=useState(false);
+  const {score,streak}=calcScore(checkins,member);
 
   const markStatus=async(status,noteText='')=>{
     setLoading(true);
@@ -411,56 +442,42 @@ function TodayView({gc,member,checkins,profiles,refreshCI}){
 
   const squadForToday=MEMBERS.map(m=>{
     const ci=checkins.find(c=>c.member===m&&c.date===today);
-    const av=profiles.find(p=>p.member===m)?.avatar_data;
-    return {m,ci,av};
+    return {m,ci,av:profiles.find(p=>p.member===m)?.avatar_data};
   });
-
-  const {score,streak}=calcScore(checkins,member);
 
   return <div className="screen" style={{padding:'0 16px'}}>
     <div style={{padding:'20px 0 8px'}}>
-      <div style={{fontFamily:'Bebas Neue',fontSize:28,letterSpacing:1.5,color:C.text}}>DNES</div>
-      {session
-        ?<div style={{fontSize:13,color:C.dim}}>{session.name} v {session.time}</div>
-        :<div style={{fontSize:13,color:C.dim}}>Dnes je volno — odpocinek</div>
-      }
+      <div style={{fontFamily:'Bebas Neue',fontSize:28,letterSpacing:1.5}}>DNES</div>
+      <div style={{fontSize:13,color:C.dim}}>{session?`${session.name} v ${session.time}`:'Dnes je volno — odpočinek'}</div>
     </div>
 
     {session&&<>
       <div className="card" style={{marginBottom:12}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
           <div>
-            <div style={{fontFamily:'Bebas Neue',fontSize:22,letterSpacing:1,color:C.text}}>{session.name}</div>
-            <div style={{fontSize:13,color:C.dim}}>{session.time} • dnesni trening</div>
+            <div style={{fontFamily:'Bebas Neue',fontSize:22,letterSpacing:1}}>{session.name}</div>
+            <div style={{fontSize:13,color:C.dim}}>{session.time} • dnešní trénink</div>
           </div>
           {myCI&&(myCI.status==='done'||myCI.status==='pr')&&<span className="badge badge-green">Byl jsem tam</span>}
-          {myCI&&myCI.status==='missed'&&<span className="badge badge-red">Nestihlo</span>}
+          {myCI&&myCI.status==='missed'&&<span className="badge badge-red">Nestíhal</span>}
           {myCI&&myCI.status==='excused'&&<span className="badge badge-dim">Omluven</span>}
         </div>
-
         {(!myCI||myCI.status==='none')&&<>
           <div className="btn-row btn-row-2" style={{marginBottom:10}}>
-            <button className="btn btn-primary" disabled={loading} onClick={()=>setNoteModal(true)}>
-              <IcoCheck/> Byl jsem tam
-            </button>
-            <button className="btn btn-secondary" disabled={loading} onClick={()=>setExcuseModal(true)}>
-              Nestihnu
-            </button>
+            <button className="btn btn-primary" disabled={loading} onClick={()=>setNoteModal(true)}><IcoCheck/>Byl jsem tam</button>
+            <button className="btn btn-secondary" disabled={loading} onClick={()=>setExcuseModal(true)}>Nestíhnu</button>
           </div>
           <div className="btn-row btn-row-fill">
-            <button className="btn btn-danger" disabled={loading} onClick={()=>markStatus('missed')}>
-              Zmekal jsem
-            </button>
+            <button className="btn btn-danger" disabled={loading} onClick={()=>markStatus('missed')}>Zmekal jsem</button>
           </div>
         </>}
-
         {myCI&&(myCI.status==='done'||myCI.status==='pr')&&<>
           {myCI.note&&<div style={{fontSize:13,color:C.dim,background:C.s2,borderRadius:10,padding:'10px 14px',marginBottom:12}}>{myCI.note}</div>}
-          <button className="btn btn-secondary btn-sm" onClick={()=>{setNote(myCI.note||'');setNoteModal(true);}}>Upravit zaznam</button>
+          <button className="btn btn-secondary btn-sm" onClick={()=>{setNote(myCI.note||'');setNoteModal(true);}}>Upravit záznam</button>
         </>}
       </div>
 
-      <div style={{fontFamily:'Bebas Neue',fontSize:18,letterSpacing:1,color:C.text,marginBottom:10}}>PARTA DNES</div>
+      <div style={{fontFamily:'Bebas Neue',fontSize:18,letterSpacing:1,marginBottom:10}}>PARTA DNES</div>
       <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
         {squadForToday.map(({m,ci,av})=>{
           const st=ci?.status;
@@ -481,25 +498,20 @@ function TodayView({gc,member,checkins,profiles,refreshCI}){
       </div>
     </>}
 
-    {!session&&<div className="card" style={{marginBottom:16}}>
-      <div style={{textAlign:'center',padding:'24px 0'}}>
-        <div style={{fontSize:32,marginBottom:8}}>--</div>
-        <div style={{fontSize:15,fontWeight:600,color:C.text}}>Dnes neni trening</div>
-        <div style={{fontSize:13,color:C.dim,marginTop:4}}>Odpocinku je take potreba</div>
-      </div>
+    {!session&&<div className="card" style={{marginBottom:16,textAlign:'center',padding:'32px 16px'}}>
+      <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Dnes není trénink</div>
+      <div style={{fontSize:13,color:C.dim}}>Odpočinek je taky potřeba</div>
     </div>}
 
     <div className="card" style={{marginBottom:24}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <div>
-          <div style={{fontSize:12,color:C.dim,textTransform:'uppercase',letterSpacing:.4,marginBottom:4}}>Tve skore</div>
-          <div style={{fontFamily:'Bebas Neue',fontSize:32,color:C.merlot}}>{score} <span style={{fontSize:16,color:C.dim}}>bodu</span></div>
+          <div style={{fontSize:12,color:C.dim,textTransform:'uppercase',letterSpacing:.4,marginBottom:4}}>Tvé skóre</div>
+          <div style={{fontFamily:'Bebas Neue',fontSize:32,color:C.merlot}}>{score} <span style={{fontSize:16,color:C.dim}}>bodů</span></div>
         </div>
         <div style={{textAlign:'right'}}>
-          <div style={{fontSize:12,color:C.dim,textTransform:'uppercase',letterSpacing:.4,marginBottom:4}}>Seria</div>
-          <div className="streak-badge" style={{display:'flex',alignItems:'center',gap:4}}>
-            <IcoFlame/> {streak}x
-          </div>
+          <div style={{fontSize:12,color:C.dim,textTransform:'uppercase',letterSpacing:.4,marginBottom:4}}>Série</div>
+          <div className="streak-badge" style={{display:'flex',alignItems:'center',gap:4}}><IcoFlame/>{streak}x</div>
         </div>
       </div>
     </div>
@@ -507,18 +519,16 @@ function TodayView({gc,member,checkins,profiles,refreshCI}){
     {noteModal&&<div className="overlay" onClick={()=>setNoteModal(false)}>
       <div className="sheet" onClick={e=>e.stopPropagation()}>
         <div className="sheet-handle"/>
-        <div style={{fontFamily:'Bebas Neue',fontSize:22,letterSpacing:1,marginBottom:4}}>CO JSI DELAL?</div>
-        <div style={{fontSize:13,color:C.dim,marginBottom:16}}>Naloguj trening (volitelne)</div>
-        <textarea placeholder="napr. bench press 100kg × 3, 5km beh 25min..." value={note} onChange={e=>setNote(e.target.value)} style={{marginBottom:16}}/>
+        <div style={{fontFamily:'Bebas Neue',fontSize:22,letterSpacing:1,marginBottom:4}}>CO JSI DĚLAL?</div>
+        <div style={{fontSize:13,color:C.dim,marginBottom:16}}>Naloguj trénink (volitelně)</div>
+        <textarea placeholder="např. bench press 100 kg × 3, 5 km běh 25 min..." value={note} onChange={e=>setNote(e.target.value)} style={{marginBottom:16}}/>
         <div className="btn-row btn-row-2">
-          <button className="btn btn-secondary" onClick={()=>setNoteModal(false)}>Zrusit</button>
+          <button className="btn btn-secondary" onClick={()=>setNoteModal(false)}>Zrušit</button>
           <button className="btn btn-primary" disabled={loading} onClick={async()=>{
             setLoading(true);
             await upsertCI(gc,member,today,'done',note);
-            await refreshCI();
-            setLoading(false);
-            setNoteModal(false);
-          }}>Ulozit</button>
+            await refreshCI();setLoading(false);setNoteModal(false);
+          }}>Uložit</button>
         </div>
       </div>
     </div>}
@@ -526,42 +536,37 @@ function TodayView({gc,member,checkins,profiles,refreshCI}){
     {excuseModal&&<div className="overlay" onClick={()=>setExcuseModal(false)}>
       <div className="sheet" onClick={e=>e.stopPropagation()}>
         <div className="sheet-handle"/>
-        <div style={{fontFamily:'Bebas Neue',fontSize:22,letterSpacing:1,marginBottom:4}}>PROC NESTIHNES?</div>
-        <div style={{fontSize:13,color:C.dim,marginBottom:16}}>Napos kratkou omluvu</div>
-        <textarea placeholder="napr. praci, zraneni..." value={note} onChange={e=>setNote(e.target.value)} style={{marginBottom:16}}/>
+        <div style={{fontFamily:'Bebas Neue',fontSize:22,letterSpacing:1,marginBottom:4}}>PROČ NESTÍHNEŠ?</div>
+        <div style={{fontSize:13,color:C.dim,marginBottom:16}}>Napiš krátkou omluvu</div>
+        <textarea placeholder="např. práce, zranění..." value={note} onChange={e=>setNote(e.target.value)} style={{marginBottom:16}}/>
         <div className="btn-row btn-row-2">
-          <button className="btn btn-secondary" onClick={()=>setExcuseModal(false)}>Zrusit</button>
+          <button className="btn btn-secondary" onClick={()=>setExcuseModal(false)}>Zrušit</button>
           <button className="btn btn-primary" disabled={loading} onClick={async()=>{
             setLoading(true);
             await upsertCI(gc,member,today,'excused',note);
-            await refreshCI();
-            setLoading(false);
-            setExcuseModal(false);
-          }}>Ulozit</button>
+            await refreshCI();setLoading(false);setExcuseModal(false);
+          }}>Uložit</button>
         </div>
       </div>
     </div>}
   </div>;
 }
 
-// --- Score View ---
+// ── Score View ─────────────────────────────────────────
 function ScoreView({gc,member,checkins,profiles}){
   const scores=MEMBERS.map(m=>{
     const {score,streak,maxStreak}=calcScore(checkins,m);
     const total=checkins.filter(c=>c.member===m&&(c.status==='done'||c.status==='pr')).length;
-    const av=profiles.find(p=>p.member===m)?.avatar_data;
-    return {m,score,streak,maxStreak,total,av};
+    return {m,score,streak,maxStreak,total,av:profiles.find(p=>p.member===m)?.avatar_data};
   }).sort((a,b)=>b.score-a.score);
   const maxScore=scores[0]?.score||1;
-
   const myHistory=checkins.filter(c=>c.member===member).sort((a,b)=>a.date>b.date?-1:1).slice(0,14);
 
   return <div className="screen" style={{padding:'0 16px'}}>
     <div style={{padding:'20px 0 8px'}}>
-      <div style={{fontFamily:'Bebas Neue',fontSize:28,letterSpacing:1.5,color:C.text}}>SKORE</div>
-      <div style={{fontSize:13,color:C.dim}}>Kdo makam nejvic</div>
+      <div style={{fontFamily:'Bebas Neue',fontSize:28,letterSpacing:1.5}}>SKÓRE</div>
+      <div style={{fontSize:13,color:C.dim}}>Kdo maká nejvíce</div>
     </div>
-
     <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
       {scores.map((s,i)=><div key={s.m} className="card" style={{display:'flex',alignItems:'center',gap:12}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:20,color:i===0?C.merlot:C.dim,width:24,textAlign:'center'}}>{i+1}</div>
@@ -571,19 +576,16 @@ function ScoreView({gc,member,checkins,profiles}){
             <span style={{fontWeight:700,fontSize:15}}>{s.m}</span>
             {s.streak>=3&&<span className="streak-badge" style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:11}}><IcoFlame/>{s.streak}x</span>}
           </div>
-          <div className="progress-bar-bg">
-            <div className="progress-bar-fill" style={{width:`${(s.score/maxScore)*100}%`}}/>
-          </div>
+          <div className="progress-bar-bg"><div className="progress-bar-fill" style={{width:`${(s.score/maxScore)*100}%`}}/></div>
         </div>
         <div style={{textAlign:'right'}}>
           <div style={{fontFamily:'Bebas Neue',fontSize:22,color:i===0?C.merlot:C.text}}>{s.score}</div>
-          <div style={{fontSize:11,color:C.dim}}>{s.total} treninku</div>
+          <div style={{fontSize:11,color:C.dim}}>{s.total} tréninků</div>
         </div>
       </div>)}
     </div>
-
-    <div style={{fontFamily:'Bebas Neue',fontSize:18,letterSpacing:1,color:C.text,marginBottom:10}}>TVOJE POSLEDNI TRENINKY</div>
-    {myHistory.length===0&&<div className="empty-state"><div className="empty-state-title">Zatim zadne zaznamy</div><div>Zacni trenigy logovat dnes</div></div>}
+    <div style={{fontFamily:'Bebas Neue',fontSize:18,letterSpacing:1,marginBottom:10}}>TVOJE POSLEDNÍ TRÉNINKY</div>
+    {myHistory.length===0&&<div className="empty-state"><div className="empty-state-title">Zatím žádné záznamy</div><div>Začni tréninky logovat dnes</div></div>}
     <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:24}}>
       {myHistory.map(c=><div key={c.date+c.member} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:`1px solid ${C.border}`}}>
         <div style={{width:40,textAlign:'center'}}>
@@ -601,48 +603,41 @@ function ScoreView({gc,member,checkins,profiles}){
   </div>;
 }
 
-// --- Challenges View ---
+// ── Challenges View ────────────────────────────────────
 function ChallengesView({gc,member,challenges,progress,profiles,refreshChallenges}){
   const [createModal,setCreateModal]=useState(false);
   const [updateModal,setUpdateModal]=useState(null);
-
-  const getProgress=(cid,m)=>progress.find(p=>p.challenge_id===cid&&p.member===m);
+  const getP=(cid,m)=>progress.find(p=>p.challenge_id===cid&&p.member===m);
 
   return <div className="screen" style={{padding:'0 16px'}}>
     <div style={{padding:'20px 0 8px',display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}>
       <div>
-        <div style={{fontFamily:'Bebas Neue',fontSize:28,letterSpacing:1.5,color:C.text}}>VYZVY</div>
-        <div style={{fontSize:13,color:C.dim}}>Kdo to zvladne?</div>
+        <div style={{fontFamily:'Bebas Neue',fontSize:28,letterSpacing:1.5}}>VÝZVY</div>
+        <div style={{fontSize:13,color:C.dim}}>Kdo to zvládne?</div>
       </div>
-      <button className="btn btn-primary btn-sm" onClick={()=>setCreateModal(true)}>
-        <IcoPlus/> Nova
-      </button>
+      <button className="btn btn-primary btn-sm" onClick={()=>setCreateModal(true)}><IcoPlus/>Nová</button>
     </div>
 
     {challenges.length===0&&<div className="empty-state">
-      <div className="empty-state-title">Zatim zadne vyzvy</div>
-      <div>Pridej prvni vyzvu pro partu</div>
+      <div className="empty-state-title">Zatím žádné výzvy</div>
+      <div>Přidej první výzvu pro partu</div>
     </div>}
 
     <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:24}}>
       {challenges.map(ch=>{
-        const myP=getProgress(ch.id,member);
-        const allP=MEMBERS.map(m=>({m,p:getProgress(ch.id,m)}));
+        const allP=MEMBERS.map(m=>({m,p:getP(ch.id,m)}));
         const maxVal=ch.target_value||Math.max(...allP.map(x=>x.p?.value||0),1);
         return <div key={ch.id} className="card">
-          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:12}}>
-            <div style={{flex:1}}>
-              <div style={{fontWeight:700,fontSize:15,marginBottom:2}}>{ch.title}</div>
-              {ch.description&&<div style={{fontSize:12,color:C.dim,marginBottom:4}}>{ch.description}</div>}
-              <div style={{display:'flex',gap:6}}>
-                <span className={`badge ${ch.type==='yesno'?'badge-blue':'badge-dim'}`}>{ch.type==='yesno'?'Ano/Ne':'Vlastni'}</span>
-                {ch.end_date&&<span className="badge badge-dim">{ch.end_date}</span>}
-              </div>
+          <div style={{marginBottom:12}}>
+            <div style={{fontWeight:700,fontSize:15,marginBottom:2}}>{ch.title}</div>
+            {ch.description&&<div style={{fontSize:12,color:C.dim,marginBottom:6}}>{ch.description}</div>}
+            <div style={{display:'flex',gap:6}}>
+              <span className={`badge ${ch.type==='yesno'?'badge-blue':'badge-dim'}`}>{ch.type==='yesno'?'Ano / Ne':'Vlastní'}</span>
+              {ch.end_date&&<span className="badge badge-dim">{ch.end_date.split('-').reverse().join('. ')}</span>}
             </div>
           </div>
-
           {ch.type==='yesno'
-            ?<div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+            ?<div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
               {allP.map(({m,p})=>{
                 const av=profiles.find(pr=>pr.member===m)?.avatar_data;
                 const done=p?.value>=1;
@@ -658,23 +653,17 @@ function ChallengesView({gc,member,challenges,progress,profiles,refreshChallenge
             :<div style={{display:'flex',flexDirection:'column',gap:8}}>
               {allP.map(({m,p})=>{
                 const val=p?.value||0;
-                const pct=Math.min((val/maxVal)*100,100);
                 const av=profiles.find(pr=>pr.member===m)?.avatar_data;
                 return <div key={m} style={{display:'flex',alignItems:'center',gap:10}}>
                   <Av member={m} size={28} avatar={av}/>
-                  <div style={{flex:1}}>
-                    <div className="progress-bar-bg">
-                      <div className="progress-bar-fill" style={{width:`${pct}%`}}/>
-                    </div>
-                  </div>
+                  <div style={{flex:1}}><div className="progress-bar-bg"><div className="progress-bar-fill" style={{width:`${Math.min((val/maxVal)*100,100)}%`}}/></div></div>
                   <div style={{fontSize:13,fontWeight:600,width:40,textAlign:'right',color:C.merlot}}>{val}</div>
                 </div>;
               })}
             </div>
           }
-
           <button className="btn btn-secondary btn-sm" style={{marginTop:12,width:'100%'}} onClick={()=>setUpdateModal(ch)}>
-            Aktualizovat muj vysledek
+            Aktualizovat můj výsledek
           </button>
         </div>;
       })}
@@ -692,42 +681,40 @@ function CreateChallengeModal({gc,member,onClose,onCreated}){
   const [target,setTarget]=useState('');
   const [endDate,setEndDate]=useState('');
   const [loading,setLoading]=useState(false);
-  const typeOptions=[{value:'custom',label:'Vlastni (cisla)'},{value:'yesno',label:'Ano / Ne (splnil / nesplnil)'}];
+  const typeOpts=[{value:'custom',label:'Vlastní (hodnota)'},{value:'yesno',label:'Ano / Ne (splnil / nesplnil)'}];
   const create=async()=>{
     if(!title.trim())return;
     setLoading(true);
     await insertChallenge(gc,{title:title.trim(),description:desc.trim(),type,target_value:target?parseFloat(target):null,end_date:endDate||null,created_by:member});
-    await onCreated();
-    setLoading(false);
-    onClose();
+    await onCreated();setLoading(false);onClose();
   };
   return <div className="overlay overlay-center" onClick={onClose}>
     <div className="modal" onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:400}}>
-      <div style={{fontFamily:'Bebas Neue',fontSize:24,letterSpacing:1,marginBottom:4}}>NOVA VYZVA</div>
-      <div style={{fontSize:13,color:C.dim,marginBottom:20}}>Vytvor vyzvu pro partu</div>
+      <div style={{fontFamily:'Bebas Neue',fontSize:24,letterSpacing:1,marginBottom:4}}>NOVÁ VÝZVA</div>
+      <div style={{fontSize:13,color:C.dim,marginBottom:20}}>Vytvoř výzvu pro partu</div>
       <div style={{marginBottom:14}}>
-        <label>Nazev vyzvy</label>
-        <input placeholder="napr. Kdo udela 100 drepov prvni" value={title} onChange={e=>setTitle(e.target.value)}/>
+        <label>Název výzvy</label>
+        <input placeholder="např. Kdo udělá 100 dřepů první" value={title} onChange={e=>setTitle(e.target.value)}/>
       </div>
       <div style={{marginBottom:14}}>
-        <label>Popis (volitelne)</label>
-        <textarea placeholder="Podrobnosti vyzvy..." value={desc} onChange={e=>setDesc(e.target.value)} style={{minHeight:60}}/>
+        <label>Popis (volitelně)</label>
+        <textarea placeholder="Podrobnosti výzvy..." value={desc} onChange={e=>setDesc(e.target.value)} style={{minHeight:60}}/>
       </div>
       <div style={{marginBottom:14}}>
-        <label>Typ vyzvy</label>
-        <CustomSelect value={type} onChange={setType} options={typeOptions}/>
+        <label>Typ výzvy</label>
+        <CustomSelect value={type} onChange={setType} options={typeOpts}/>
       </div>
       {type==='custom'&&<div style={{marginBottom:14}}>
-        <label>Cilova hodnota (volitelne)</label>
-        <input type="number" placeholder="napr. 100" value={target} onChange={e=>setTarget(e.target.value)}/>
+        <label>Cílová hodnota (volitelně)</label>
+        <input type="number" placeholder="např. 100" value={target} onChange={e=>setTarget(e.target.value)}/>
       </div>}
       <div style={{marginBottom:20}}>
-        <label>Konec vyzvy (volitelne)</label>
-        <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)}/>
+        <label>Konec výzvy (volitelně)</label>
+        <CustomDatePicker value={endDate} onChange={setEndDate} placeholder="Vyber datum konce..."/>
       </div>
       <div className="btn-row btn-row-2">
-        <button className="btn btn-secondary" onClick={onClose}>Zrusit</button>
-        <button className="btn btn-primary" disabled={loading||!title.trim()} onClick={create}>Vytvorit</button>
+        <button className="btn btn-secondary" onClick={onClose}>Zrušit</button>
+        <button className="btn btn-primary" disabled={loading||!title.trim()} onClick={create}>Vytvořit</button>
       </div>
     </div>
   </div>;
@@ -738,39 +725,33 @@ function UpdateProgressModal({gc,member,challenge,progress,onClose,onUpdated}){
   const [loading,setLoading]=useState(false);
   const save=async()=>{
     setLoading(true);
-    await upsertProgress(challenge.id,gc,member,challenge.type==='yesno'?1:parseFloat(val)||0);
-    await onUpdated();
-    setLoading(false);
-    onClose();
+    await upsertProgress(challenge.id,gc,member,parseFloat(val)||0);
+    await onUpdated();setLoading(false);onClose();
   };
   return <div className="overlay overlay-center" onClick={onClose}>
     <div className="modal" onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:360}}>
       <div style={{fontFamily:'Bebas Neue',fontSize:20,letterSpacing:1,marginBottom:4}}>{challenge.title}</div>
-      <div style={{fontSize:13,color:C.dim,marginBottom:20}}>Tvuj aktualni vysledek</div>
+      <div style={{fontSize:13,color:C.dim,marginBottom:20}}>Tvůj aktuální výsledek</div>
       {challenge.type==='yesno'
         ?<div style={{marginBottom:20}}>
           <button className="btn btn-primary" style={{width:'100%'}} onClick={async()=>{
-            setLoading(true);
-            await upsertProgress(challenge.id,gc,member,1);
-            await onUpdated();
-            setLoading(false);
-            onClose();
-          }} disabled={loading}>Splneno!</button>
+            setLoading(true);await upsertProgress(challenge.id,gc,member,1);await onUpdated();setLoading(false);onClose();
+          }} disabled={loading}>Splněno!</button>
         </div>
         :<div style={{marginBottom:20}}>
-          <label>Aktualni hodnota</label>
+          <label>Aktuální hodnota</label>
           <input type="number" value={val} onChange={e=>setVal(e.target.value)} placeholder="0"/>
         </div>
       }
       <div className="btn-row btn-row-2">
-        <button className="btn btn-secondary" onClick={onClose}>Zrusit</button>
-        {challenge.type!=='yesno'&&<button className="btn btn-primary" disabled={loading} onClick={save}>Ulozit</button>}
+        <button className="btn btn-secondary" onClick={onClose}>Zrušit</button>
+        {challenge.type!=='yesno'&&<button className="btn btn-primary" disabled={loading} onClick={save}>Uložit</button>}
       </div>
     </div>
   </div>;
 }
 
-// --- Me View ---
+// ── Me View ────────────────────────────────────────────
 function MeView({gc,member,checkins,prs,profiles,refreshProfiles}){
   const fileRef=useRef();
   const [loading,setLoading]=useState(false);
@@ -778,9 +759,8 @@ function MeView({gc,member,checkins,prs,profiles,refreshProfiles}){
   const [exercise,setExercise]=useState('');
   const [prVal,setPrVal]=useState('');
   const [prUnit,setPrUnit]=useState('kg');
-
   const av=profiles.find(p=>p.member===member)?.avatar_data;
-  const {score,streak,maxStreak}=calcScore(checkins,member);
+  const {score,streak}=calcScore(checkins,member);
   const total=checkins.filter(c=>c.member===member&&(c.status==='done'||c.status==='pr')).length;
   const myPRs=prs.filter(p=>p.member===member).sort((a,b)=>a.exercise>b.exercise?1:-1);
 
@@ -794,35 +774,39 @@ function MeView({gc,member,checkins,prs,profiles,refreshProfiles}){
     setLoading(false);
   };
 
-  const unitOptions=[{value:'kg',label:'kg'},{value:'opak',label:'opak'},{value:'min',label:'min'},{value:'km',label:'km'},{value:'sec',label:'sec'}];
-  const exOptions=[{value:'Bench press',label:'Bench press'},{value:'Drep',label:'Drep'},{value:'Mrtvý tah',label:'Mrtvý tah'},{value:'Klik',label:'Kliky'},{value:'Shyb',label:'Shyby'},{value:'Beh',label:'Beh'},{value:'Plavani',label:'Plavani'},{value:'Jine',label:'Jine'}];
+  const unitOpts=[{value:'kg',label:'kg'},{value:'opak.',label:'opak.'},{value:'min',label:'min'},{value:'km',label:'km'},{value:'sec',label:'sec'}];
+  const exOpts=[
+    {value:'Bench press',label:'Bench press'},
+    {value:'Dřep',label:'Dřep'},
+    {value:'Mrtvý tah',label:'Mrtvý tah'},
+    {value:'Kliky',label:'Kliky'},
+    {value:'Shyby',label:'Shyby'},
+    {value:'Běh',label:'Běh'},
+    {value:'Plavání',label:'Plavání'},
+    {value:'Jiné',label:'Jiné'},
+  ];
 
   return <div className="screen" style={{padding:'0 16px'}}>
     <div style={{padding:'20px 0 16px'}}>
-      <div style={{fontFamily:'Bebas Neue',fontSize:28,letterSpacing:1.5,color:C.text}}>JA</div>
+      <div style={{fontFamily:'Bebas Neue',fontSize:28,letterSpacing:1.5}}>JÁ</div>
     </div>
-
     <div className="card" style={{display:'flex',alignItems:'center',gap:16,marginBottom:16}}>
       <div style={{position:'relative'}}>
         <Av member={member} size={72} avatar={av} showStatus checkins={checkins}/>
-        <button
-          style={{position:'absolute',bottom:0,right:0,width:26,height:26,background:C.merlot,border:`2px solid ${C.s1}`,borderRadius:'50%',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff'}}
-          onClick={()=>fileRef.current?.click()}
-          disabled={loading}
-        ><IcoCamera/></button>
+        <button style={{position:'absolute',bottom:0,right:0,width:26,height:26,background:C.merlot,border:`2px solid ${C.s1}`,borderRadius:'50%',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff'}} onClick={()=>fileRef.current?.click()} disabled={loading}><IcoCamera/></button>
         <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handlePhoto}/>
       </div>
       <div>
         <div style={{fontFamily:'Bebas Neue',fontSize:26,letterSpacing:1}}>{member}</div>
-        <div style={{fontSize:13,color:C.dim}}>Squad Gym clen</div>
+        <div style={{fontSize:13,color:C.dim}}>Squad Gym člen</div>
       </div>
     </div>
 
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:16}}>
       {[
-        {label:'Skore',val:score,color:C.merlot},
-        {label:'Seria',val:`${streak}x`,color:C.text},
-        {label:'Treninku',val:total,color:C.text},
+        {label:'Skóre',val:score,color:C.merlot},
+        {label:'Série',val:`${streak}x`,color:C.text},
+        {label:'Tréninků',val:total,color:C.text},
       ].map(({label,val,color})=><div key={label} className="card" style={{textAlign:'center',padding:'14px 8px'}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:28,color}}>{val}</div>
         <div style={{fontSize:11,color:C.dim,textTransform:'uppercase',letterSpacing:.4}}>{label}</div>
@@ -830,11 +814,10 @@ function MeView({gc,member,checkins,prs,profiles,refreshProfiles}){
     </div>
 
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-      <div style={{fontFamily:'Bebas Neue',fontSize:18,letterSpacing:1,color:C.text}}>OSOBAKY (PRs)</div>
-      <button className="btn btn-secondary btn-sm" onClick={()=>setPrModal(true)}><IcoPlus/> Pridat</button>
+      <div style={{fontFamily:'Bebas Neue',fontSize:18,letterSpacing:1}}>OSOBÁKY (PRs)</div>
+      <button className="btn btn-secondary btn-sm" onClick={()=>setPrModal(true)}><IcoPlus/>Přidat</button>
     </div>
-
-    {myPRs.length===0&&<div style={{color:C.dim,fontSize:13,textAlign:'center',padding:'24px 0',marginBottom:16}}>Zatim zadne osobaky. Zacni makat!</div>}
+    {myPRs.length===0&&<div style={{color:C.dim,fontSize:13,textAlign:'center',padding:'24px 0',marginBottom:16}}>Zatím žádné osobáky. Začni makat!</div>}
     <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:24}}>
       {myPRs.map(pr=><div key={pr.exercise} className="card" style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px'}}>
         <div style={{color:C.merlot}}><IcoTrophy/></div>
@@ -848,11 +831,11 @@ function MeView({gc,member,checkins,prs,profiles,refreshProfiles}){
 
     {prModal&&<div className="overlay overlay-center" onClick={()=>setPrModal(false)}>
       <div className="modal" onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:360}}>
-        <div style={{fontFamily:'Bebas Neue',fontSize:22,letterSpacing:1,marginBottom:4}}>NOVY OSOBAK</div>
-        <div style={{fontSize:13,color:C.dim,marginBottom:20}}>Zaznamenej svuj novy personal record</div>
+        <div style={{fontFamily:'Bebas Neue',fontSize:22,letterSpacing:1,marginBottom:4}}>NOVÝ OSOBÁK</div>
+        <div style={{fontSize:13,color:C.dim,marginBottom:20}}>Zaznamenej svůj nový personal record</div>
         <div style={{marginBottom:14}}>
-          <label>Cviceni</label>
-          <CustomSelect value={exercise} onChange={setExercise} options={exOptions} placeholder="Vyber cviceni..."/>
+          <label>Cvičení</label>
+          <CustomSelect value={exercise} onChange={setExercise} options={exOpts} placeholder="Vyber cvičení..."/>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:20}}>
           <div>
@@ -861,42 +844,37 @@ function MeView({gc,member,checkins,prs,profiles,refreshProfiles}){
           </div>
           <div>
             <label>Jednotka</label>
-            <CustomSelect value={prUnit} onChange={setPrUnit} options={unitOptions}/>
+            <CustomSelect value={prUnit} onChange={setPrUnit} options={unitOpts}/>
           </div>
         </div>
         <div className="btn-row btn-row-2">
-          <button className="btn btn-secondary" onClick={()=>setPrModal(false)}>Zrusit</button>
+          <button className="btn btn-secondary" onClick={()=>setPrModal(false)}>Zrušit</button>
           <button className="btn btn-primary" disabled={!exercise||!prVal} onClick={async()=>{
-            await upsertPR(gc,member,exercise,parseFloat(prVal),prUnit);
-            setPrModal(false);
-          }}>Ulozit</button>
+            await upsertPR(gc,member,exercise,parseFloat(prVal),prUnit);setPrModal(false);
+          }}>Uložit</button>
         </div>
       </div>
     </div>}
   </div>;
 }
 
-// --- Squad View ---
+// ── Squad View ─────────────────────────────────────────
 function SquadView({gc,checkins,profiles}){
   const [sel,setSel]=useState(null);
-  const getAv=m=>profiles.find(p=>p.member===m)?.avatar_data;
-
   const scores=MEMBERS.map(m=>{
     const {score,streak,maxStreak}=calcScore(checkins,m);
     const total=checkins.filter(c=>c.member===m&&(c.status==='done'||c.status==='pr')).length;
     const missed=checkins.filter(c=>c.member===m&&c.status==='missed').length;
-    return {m,score,streak,maxStreak,total,missed,av:getAv(m)};
+    return {m,score,streak,maxStreak,total,missed,av:profiles.find(p=>p.member===m)?.avatar_data};
   });
-
   const detail=sel?scores.find(s=>s.m===sel):null;
   const detailHistory=sel?checkins.filter(c=>c.member===sel).sort((a,b)=>a.date>b.date?-1:1).slice(0,20):[];
 
   return <div className="screen" style={{padding:'0 16px'}}>
     <div style={{padding:'20px 0 8px'}}>
-      <div style={{fontFamily:'Bebas Neue',fontSize:28,letterSpacing:1.5,color:C.text}}>PARTA</div>
-      <div style={{fontSize:13,color:C.dim}}>Vsichni clenove</div>
+      <div style={{fontFamily:'Bebas Neue',fontSize:28,letterSpacing:1.5}}>PARTA</div>
+      <div style={{fontSize:13,color:C.dim}}>Všichni členové</div>
     </div>
-
     <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20}}>
       {scores.map(s=><div key={s.m} className="card" style={{cursor:'pointer'}} onClick={()=>setSel(sel===s.m?null:s.m)}>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
@@ -907,25 +885,20 @@ function SquadView({gc,checkins,profiles}){
               {s.streak>=3&&<span className="streak-badge" style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:11}}><IcoFlame/>{s.streak}x</span>}
             </div>
             <div style={{display:'flex',gap:12}}>
-              <span style={{fontSize:12,color:C.dim}}>{s.total} treninku</span>
+              <span style={{fontSize:12,color:C.dim}}>{s.total} tréninků</span>
               {s.missed>0&&<span style={{fontSize:12,color:C.merlot}}>{s.missed}x zmekal</span>}
             </div>
           </div>
           <div style={{textAlign:'right'}}>
             <div style={{fontFamily:'Bebas Neue',fontSize:24,color:C.merlot}}>{s.score}</div>
-            <div style={{fontSize:11,color:C.dim}}>bodu</div>
+            <div style={{fontSize:11,color:C.dim}}>bodů</div>
           </div>
         </div>
-
         {sel===s.m&&detail&&<>
           <div className="divider"/>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:12}}>
-            {[
-              {l:'Max seria',v:`${detail.maxStreak}x`},
-              {l:'Aktualni',v:`${detail.streak}x`},
-              {l:'Prumerny',v:detail.total>0?(detail.score/detail.total).toFixed(1):'0'},
-            ].map(({l,v})=><div key={l} style={{background:C.s2,borderRadius:10,padding:'10px',textAlign:'center'}}>
-              <div style={{fontFamily:'Bebas Neue',fontSize:20,color:C.text}}>{v}</div>
+            {[{l:'Max série',v:`${detail.maxStreak}x`},{l:'Aktuální',v:`${detail.streak}x`},{l:'Průměrný',v:detail.total>0?(detail.score/detail.total).toFixed(1):'0'}].map(({l,v})=><div key={l} style={{background:C.s2,borderRadius:10,padding:10,textAlign:'center'}}>
+              <div style={{fontFamily:'Bebas Neue',fontSize:20}}>{v}</div>
               <div style={{fontSize:10,color:C.dim,textTransform:'uppercase'}}>{l}</div>
             </div>)}
           </div>
@@ -948,7 +921,7 @@ function SquadView({gc,checkins,profiles}){
   </div>;
 }
 
-// --- Main App ---
+// ── Main App ───────────────────────────────────────────
 function MainApp({gc,member,onLogout}){
   const [tab,setTab]=useState('dnes');
   const [checkins,setCheckins]=useState([]);
@@ -957,15 +930,9 @@ function MainApp({gc,member,onLogout}){
   const [challenges,setChallenges]=useState([]);
   const [progress,setProgress]=useState([]);
 
-  const refreshCI=useCallback(async()=>{
-    const d=await loadCI(gc);setCheckins(d);
-  },[gc]);
-  const refreshPRs=useCallback(async()=>{
-    const d=await loadPRs(gc);setPrs(d);
-  },[gc]);
-  const refreshProfiles=useCallback(async()=>{
-    const d=await loadProfiles(gc);setProfiles(d);
-  },[gc]);
+  const refreshCI=useCallback(async()=>{const d=await loadCI(gc);setCheckins(d);},[gc]);
+  const refreshPRs=useCallback(async()=>{const d=await loadPRs(gc);setPrs(d);},[gc]);
+  const refreshProfiles=useCallback(async()=>{const d=await loadProfiles(gc);setProfiles(d);},[gc]);
   const refreshChallenges=useCallback(async()=>{
     const [ch,pr]=await Promise.all([loadChallenges(gc),loadChallengeProgress(gc)]);
     setChallenges(ch);setProgress(pr);
@@ -973,23 +940,18 @@ function MainApp({gc,member,onLogout}){
 
   useEffect(()=>{
     refreshCI();refreshPRs();refreshProfiles();refreshChallenges();
-    const ciCh=subscribeCI(gc,refreshCI);
-    const prCh=subscribePRs(gc,refreshPRs);
-    const pfCh=subscribeProfiles(gc,refreshProfiles);
-    const chCh=subscribeChallenges(gc,refreshChallenges);
-    return ()=>{
-      initSB().removeChannel(ciCh);
-      initSB().removeChannel(prCh);
-      initSB().removeChannel(pfCh);
-      initSB().removeChannel(chCh);
-    };
+    const c1=subscribeCI(gc,refreshCI);
+    const c2=subscribePRs(gc,refreshPRs);
+    const c3=subscribeProfiles(gc,refreshProfiles);
+    const c4=subscribeChallenges(gc,refreshChallenges);
+    return()=>{const sb=initSB();[c1,c2,c3,c4].forEach(c=>sb.removeChannel(c));};
   },[gc]);
 
-  const navItems=[
-    {id:'dnes',label:'Dnes',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>},
-    {id:'skore',label:'Skore',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>},
-    {id:'vyzvy',label:'Vyzvy',icon:<IcoTarget/>},
-    {id:'ja',label:'Ja',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>},
+  const nav=[
+    {id:'dnes',label:'Dnes',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>},
+    {id:'skore',label:'Skóre',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>},
+    {id:'vyzvy',label:'Výزvy',icon:<IcoTarget/>},
+    {id:'ja',label:'Já',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>},
     {id:'parta',label:'Parta',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>},
   ];
 
@@ -999,9 +961,8 @@ function MainApp({gc,member,onLogout}){
     {tab==='vyzvy'&&<ChallengesView gc={gc} member={member} challenges={challenges} progress={progress} profiles={profiles} refreshChallenges={refreshChallenges}/>}
     {tab==='ja'&&<MeView gc={gc} member={member} checkins={checkins} prs={prs} profiles={profiles} refreshProfiles={refreshProfiles}/>}
     {tab==='parta'&&<SquadView gc={gc} checkins={checkins} profiles={profiles}/>}
-
     <nav className="nav">
-      {navItems.map(n=><div key={n.id} className={`nav-btn${tab===n.id?' on':''}`} onClick={()=>setTab(n.id)}>
+      {nav.map(n=><div key={n.id} className={`nav-btn${tab===n.id?' on':''}`} onClick={()=>setTab(n.id)}>
         <span className="nav-ico">{n.icon}</span>
         <span className="nav-lbl">{n.label}</span>
       </div>)}
@@ -1009,24 +970,18 @@ function MainApp({gc,member,onLogout}){
   </div>;
 }
 
-// --- Root ---
+// ── Root ───────────────────────────────────────────────
 function App(){
   const [authed,setAuthed]=useState(()=>localStorage.getItem('sg_authed')==='1');
   const [member,setMember]=useState(()=>localStorage.getItem('sg_member')||null);
   const [profiles,setProfiles]=useState([]);
   const GC='sg_default';
 
-  useEffect(()=>{
-    if(authed)loadProfiles(GC).then(setProfiles);
-  },[authed]);
+  useEffect(()=>{if(authed)loadProfiles(GC).then(setProfiles);},[authed]);
 
-  const handleAuth=()=>{localStorage.setItem('sg_authed','1');setAuthed(true);};
-  const handleMember=m=>{localStorage.setItem('sg_member',m);setMember(m);};
-  const handleLogout=()=>{localStorage.removeItem('sg_member');setMember(null);};
-
-  if(!authed)return <PinScreen onAuth={handleAuth}/>;
-  if(!member)return <MemberSelect onSelect={handleMember} profiles={profiles}/>;
-  return <MainApp gc={GC} member={member} onLogout={handleLogout}/>;
+  if(!authed)return <PinScreen onAuth={()=>{localStorage.setItem('sg_authed','1');setAuthed(true);}}/>;
+  if(!member)return <MemberSelect onSelect={m=>{localStorage.setItem('sg_member',m);setMember(m);}} profiles={profiles}/>;
+  return <MainApp gc={GC} member={member} onLogout={()=>{localStorage.removeItem('sg_member');setMember(null);}}/>;
 }
 
 ReactDOM.render(<App/>,document.getElementById('root'));
