@@ -31,6 +31,7 @@ function doPost(e) {
       case 'upsertProfile':   return json(upsertProfile(d));
       case 'insertChallenge': return json(insertChallenge(d));
       case 'upsertProgress':  return json(upsertProgress(d));
+      case 'upsertSetting':   return json(upsertSetting(d));
       default:                return json({ error: 'Neznámá akce: ' + d.action });
     }
   } catch (err) {
@@ -50,7 +51,8 @@ const SCHEMA = {
   prs:        ['group_code','member','exercise','value','unit','date','ts'],
   profiles:   ['group_code','member','avatar_data','stats_json','updated_at'],
   challenges: ['id','group_code','title','description','type','target_value','end_date','created_by','created_at','active'],
-  progress:   ['id','challenge_id','group_code','member','value','updated_at']
+  progress:   ['id','challenge_id','group_code','member','value','updated_at'],
+  settings:   ['group_code','key','value','updated_at']
 };
 
 function getSheet(name) {
@@ -90,6 +92,7 @@ function getAllData(gc) {
   let profiles   = sheetRows(getSheet('profiles')).filter(r => r.group_code === gc);
   let challenges = sheetRows(getSheet('challenges')).filter(r => r.group_code === gc);
   let progress   = sheetRows(getSheet('progress')).filter(r => r.group_code === gc);
+  let settings   = sheetRows(getSheet('settings')).filter(r => r.group_code === gc);
 
   // Typová korekce
   prs.forEach(r => { r.value = r.value !== null ? parseFloat(r.value) : null; });
@@ -102,7 +105,7 @@ function getAllData(gc) {
 
   progress.forEach(r => { r.value = r.value !== null ? parseFloat(r.value) : 0; });
 
-  return { checkins, prs, profiles, challenges, progress };
+  return { checkins, prs, profiles, challenges, progress, settings };
 }
 
 // ── Upsert helper ─────────────────────────────────────
@@ -157,6 +160,10 @@ function insertChallenge(d) {
   });
   sheet.appendRow(row);
   return { ok: true, id };
+}
+
+function upsertSetting(d) {
+  return upsertByKeys('settings', ['group_code','key'], d);
 }
 
 function upsertProgress(d) {
