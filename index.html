@@ -10,7 +10,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Squad Gym">
 <meta name="theme-color" content="#0A0A0F">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
@@ -89,8 +88,10 @@ label{font-size:12px;font-weight:600;color:#585870;letter-spacing:.4px;text-tran
 <script type="text/babel">
 const {useState,useEffect,useRef,useCallback}=React;
 
-const SB_URL='https://brgetggvmoskbfahhugo.supabase.co';
-const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyZ2V0Z2d2bW9za2JmYWhodWdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MzQwMDEsImV4cCI6MjA5NTMxMDAwMX0.ewxljMGZkS8026bEOvtrm3rXtVg-ZSz_jMoJXWxv680';
+// ── Sem vlož URL svého Apps Script nasazení ───────────
+const SCRIPT_URL='YOUR_APPS_SCRIPT_URL_HERE';
+// ─────────────────────────────────────────────────────
+
 const PIN='4321';
 const MEMBERS=['Indy','Ričrd','Ondra','Pepa'];
 const C={bg:'#0A0A0F',s1:'#111118',s2:'#18181F',border:'#1E1E28',text:'#F0F0F4',dim:'#585870',muted:'#30303E',merlot:'#E53935',green:'#22C55E',amber:'#F59E0B',blue:'#2563EB'};
@@ -109,41 +110,39 @@ function todayDow(){return new Date().getDay();}
 function getTodaySession(){return SCHEDULE.find(s=>s.day===todayDow())||null;}
 function initSB(){return supabase.createClient(SB_URL,SB_KEY);}
 
-// ── DB ─────────────────────────────────────────────────
+// ── API – Apps Script ──────────────────────────────────
+function mkId(){return 'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,9);}
+
+async function apiGet(gc){
+  const res=await fetch(`${SCRIPT_URL}?gc=${encodeURIComponent(gc)}`);
+  return res.json();
+}
+async function apiPost(action,data){
+  // no-cors: zápisová operace, odpověď nepotřebujeme
+  try{
+    await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',body:JSON.stringify({action,...data})});
+  }catch(e){}
+  // Krátká prodleva aby Sheets stihl zapsat
+  await new Promise(r=>setTimeout(r,800));
+}
+
 async function upsertCI(gc,member,dateStr,status,note=''){
-  const sb=initSB();
-  const {error}=await sb.from('sg_checkins').upsert({group_code:gc,member,date:dateStr,status,note,ts:Date.now()},{onConflict:'group_code,member,date'});
-  return error;
+  await apiPost('upsertCheckin',{group_code:gc,member,date:dateStr,status,note,ts:Date.now()});
 }
-async function loadCI(gc){const sb=initSB();const {data}=await sb.from('sg_checkins').select('*').eq('group_code',gc);return data||[];}
 async function upsertPR(gc,member,exercise,value,unit){
-  const sb=initSB();
-  const {error}=await sb.from('sg_prs').upsert({group_code:gc,member,exercise,value,unit,date:todayStr(),ts:Date.now()},{onConflict:'group_code,member,exercise'});
-  return error;
+  await apiPost('upsertPR',{group_code:gc,member,exercise,value,unit,date:todayStr(),ts:Date.now()});
 }
-async function loadPRs(gc){const sb=initSB();const {data}=await sb.from('sg_prs').select('*').eq('group_code',gc);return data||[];}
 async function upsertProfile(gc,member,fields){
-  const sb=initSB();
-  const {error}=await sb.from('sg_profiles').upsert({group_code:gc,member,...fields,updated_at:Date.now()},{onConflict:'group_code,member'});
-  return error;
+  await apiPost('upsertProfile',{group_code:gc,member,...fields,updated_at:Date.now()});
 }
-async function loadProfiles(gc){const sb=initSB();const {data}=await sb.from('sg_profiles').select('*').eq('group_code',gc);return data||[];}
 async function insertChallenge(gc,data){
-  const sb=initSB();
-  const {data:d,error}=await sb.from('sg_challenges').insert({group_code:gc,...data,active:true,created_at:Date.now()}).select().single();
-  return {data:d,error};
+  const id=mkId();
+  await apiPost('insertChallenge',{id,group_code:gc,...data,active:true,created_at:Date.now()});
+  return {data:{id},error:null};
 }
-async function loadChallenges(gc){const sb=initSB();const {data}=await sb.from('sg_challenges').select('*').eq('group_code',gc).eq('active',true).order('created_at',{ascending:false});return data||[];}
-async function loadChallengeProgress(gc){const sb=initSB();const {data}=await sb.from('sg_challenge_progress').select('*').eq('group_code',gc);return data||[];}
 async function upsertProgress(challengeId,gc,member,value){
-  const sb=initSB();
-  const {error}=await sb.from('sg_challenge_progress').upsert({challenge_id:challengeId,group_code:gc,member,value,updated_at:Date.now()},{onConflict:'challenge_id,member'});
-  return error;
+  await apiPost('upsertProgress',{challenge_id:challengeId,group_code:gc,member,value,updated_at:Date.now()});
 }
-function subscribeCI(gc,cb){return initSB().channel('ci_'+gc).on('postgres_changes',{event:'*',schema:'public',table:'sg_checkins',filter:`group_code=eq.${gc}`},cb).subscribe();}
-function subscribePRs(gc,cb){return initSB().channel('pr_'+gc).on('postgres_changes',{event:'*',schema:'public',table:'sg_prs',filter:`group_code=eq.${gc}`},cb).subscribe();}
-function subscribeProfiles(gc,cb){return initSB().channel('prof_'+gc).on('postgres_changes',{event:'*',schema:'public',table:'sg_profiles',filter:`group_code=eq.${gc}`},cb).subscribe();}
-function subscribeChallenges(gc,cb){return initSB().channel('ch_'+gc).on('postgres_changes',{event:'*',schema:'public',table:'sg_challenges',filter:`group_code=eq.${gc}`},cb).subscribe();}
 
 // ── Scoring ────────────────────────────────────────────
 function calcScore(cis,member){
@@ -913,6 +912,8 @@ function SquadView({gc,checkins,profiles}){
 }
 
 // ── Main App ───────────────────────────────────────────
+const POLL_MS=15000; // refresh každých 15 s
+
 function MainApp({gc,member}){
   const [tab,setTab]=useState('dnes');
   const [checkins,setCheckins]=useState([]);
@@ -920,16 +921,35 @@ function MainApp({gc,member}){
   const [profiles,setProfiles]=useState([]);
   const [challenges,setChallenges]=useState([]);
   const [progress,setProgress]=useState([]);
+  const [syncing,setSyncing]=useState(false);
 
-  const refreshCI=useCallback(async()=>{const d=await loadCI(gc);setCheckins(d);},[gc]);
-  const refreshPRs=useCallback(async()=>{const d=await loadPRs(gc);setPrs(d);},[gc]);
-  const refreshProfiles=useCallback(async()=>{const d=await loadProfiles(gc);setProfiles(d);},[gc]);
-  const refreshChallenges=useCallback(async()=>{const [ch,pr]=await Promise.all([loadChallenges(gc),loadChallengeProgress(gc)]);setChallenges(ch);setProgress(pr);},[gc]);
+  const refreshAll=useCallback(async(silent=false)=>{
+    if(!silent)setSyncing(true);
+    try{
+      const d=await apiGet(gc);
+      setCheckins(d.checkins||[]);
+      setPrs(d.prs||[]);
+      setProfiles(d.profiles||[]);
+      setChallenges((d.challenges||[]).sort((a,b)=>(b.created_at||0)-(a.created_at||0)));
+      setProgress(d.progress||[]);
+    }catch(e){console.warn('Sync error',e);}
+    if(!silent)setSyncing(false);
+  },[gc]);
+
+  const refreshCI=useCallback(async()=>{ await refreshAll(true); },[refreshAll]);
+  const refreshPRs=useCallback(async()=>{ await refreshAll(true); },[refreshAll]);
+  const refreshProfiles=useCallback(async()=>{ await refreshAll(true); },[refreshAll]);
+  const refreshChallenges=useCallback(async()=>{ await refreshAll(true); },[refreshAll]);
 
   useEffect(()=>{
-    refreshCI();refreshPRs();refreshProfiles();refreshChallenges();
-    const c1=subscribeCI(gc,refreshCI),c2=subscribePRs(gc,refreshPRs),c3=subscribeProfiles(gc,refreshProfiles),c4=subscribeChallenges(gc,refreshChallenges);
-    return()=>{const sb=initSB();[c1,c2,c3,c4].forEach(c=>sb.removeChannel(c));};
+    refreshAll();
+    // Polling – aktivní jen když je tab viditelný
+    let timer=null;
+    const startPoll=()=>{ timer=setInterval(()=>{ if(!document.hidden)refreshAll(true); },POLL_MS); };
+    const stopPoll=()=>clearInterval(timer);
+    startPoll();
+    document.addEventListener('visibilitychange',()=>{ if(document.hidden)stopPoll();else{refreshAll(true);startPoll();} });
+    return()=>stopPoll();
   },[gc]);
 
   const navItems=[
@@ -941,6 +961,7 @@ function MainApp({gc,member}){
   ];
 
   return <div style={{height:'100vh',display:'flex',flexDirection:'column',background:C.bg}}>
+    {syncing&&<div style={{position:'fixed',top:0,left:0,right:0,height:2,background:C.merlot,zIndex:999,animation:'syncbar 1s linear infinite'}}/>}
     {tab==='dnes'&&<TodayView gc={gc} member={member} checkins={checkins} profiles={profiles} refreshCI={refreshCI}/>}
     {tab==='skore'&&<ScoreView gc={gc} member={member} checkins={checkins} profiles={profiles}/>}
     {tab==='vyzvy'&&<ChallengesView gc={gc} member={member} challenges={challenges} progress={progress} profiles={profiles} refreshChallenges={refreshChallenges}/>}
@@ -952,6 +973,7 @@ function MainApp({gc,member}){
         <span className="nav-lbl">{n.label}</span>
       </div>)}
     </nav>
+    <style>{`@keyframes syncbar{0%{opacity:1}50%{opacity:.3}100%{opacity:1}}`}</style>
   </div>;
 }
 
@@ -959,11 +981,9 @@ function MainApp({gc,member}){
 function App(){
   const [authed,setAuthed]=useState(()=>localStorage.getItem('sg_authed')==='1');
   const [member,setMember]=useState(()=>localStorage.getItem('sg_member')||null);
-  const [profiles,setProfiles]=useState([]);
   const GC='sg_default';
-  useEffect(()=>{if(authed)loadProfiles(GC).then(setProfiles);},[authed]);
   if(!authed)return <PinScreen onAuth={()=>{localStorage.setItem('sg_authed','1');setAuthed(true);}}/>;
-  if(!member)return <MemberSelect onSelect={m=>{localStorage.setItem('sg_member',m);setMember(m);}} profiles={profiles}/>;
+  if(!member)return <MemberSelect onSelect={m=>{localStorage.setItem('sg_member',m);setMember(m);}} profiles={[]}/>;
   return <MainApp gc={GC} member={member}/>;
 }
 
