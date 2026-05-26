@@ -32,6 +32,7 @@ function doPost(e) {
       case 'insertChallenge': return json(insertChallenge(d));
       case 'upsertProgress':  return json(upsertProgress(d));
       case 'upsertSetting':   return json(upsertSetting(d));
+      case 'deletePR':        return json(deletePR(d));
       default:                return json({ error: 'Neznámá akce: ' + d.action });
     }
   } catch (err) {
@@ -164,6 +165,23 @@ function insertChallenge(d) {
 
 function upsertSetting(d) {
   return upsertByKeys('settings', ['group_code','key'], d);
+}
+
+function deletePR(d) {
+  const sheet = getSheet('prs');
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return { ok: false };
+  const h = rows[0];
+  const gi = h.indexOf('group_code'), mi = h.indexOf('member'), ei = h.indexOf('exercise');
+  for (let i = rows.length - 1; i >= 1; i--) {
+    if (String(rows[i][gi]) === String(d.group_code) &&
+        String(rows[i][mi]) === String(d.member) &&
+        String(rows[i][ei]) === String(d.exercise)) {
+      sheet.deleteRow(i + 1);
+      return { ok: true };
+    }
+  }
+  return { ok: false };
 }
 
 function upsertProgress(d) {

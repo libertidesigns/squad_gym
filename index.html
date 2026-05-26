@@ -19,7 +19,7 @@
 html,body,#root{height:100%;overflow:hidden}
 body{background:#0A0A0F;font-family:'Inter',sans-serif;color:#F0F0F4;-webkit-font-smoothing:antialiased}
 #root{display:flex;flex-direction:column}
-.screen{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:80px;-webkit-overflow-scrolling:touch}
+.screen{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:calc(96px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
 .screen::-webkit-scrollbar{display:none}
 .nav{position:fixed;bottom:0;left:0;right:0;height:60px;padding-bottom:env(safe-area-inset-bottom);background:rgba(10,10,15,.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,.05);display:flex;z-index:100}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:opacity .1s;user-select:none;-webkit-user-select:none}
@@ -113,6 +113,40 @@ const DEFAULT_DISCIPLINES=[
 function todayStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function todayDow(){return new Date().getDay();}
 function getTodaySession(sched){return (sched||SCHEDULE).find(s=>s.day===todayDow())||null;}
+function getNextTrainingDay(sched){
+  const today=new Date();
+  for(let i=1;i<=7;i++){
+    const d=new Date(today);d.setDate(d.getDate()+i);
+    const dow=d.getDay();
+    const sess=(sched||SCHEDULE).find(s=>s.day===dow);
+    if(sess){
+      const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      return {date:ds,session:sess,dayLabel:i===1?'zítra':DAYS_FULL_CS[dow].toLowerCase()};
+    }
+  }
+  return null;
+}
+
+// ── Long Press ─────────────────────────────────────────
+function useLongPress(cb,ms=650){
+  const t=useRef(null);
+  const start=()=>{t.current=setTimeout(cb,ms);};
+  const cancel=()=>clearTimeout(t.current);
+  return {onTouchStart:start,onTouchEnd:cancel,onTouchMove:cancel,onMouseDown:start,onMouseUp:cancel,onMouseLeave:cancel};
+}
+function LongPressMenu({items,onClose}){
+  return <div className="overlay" onClick={onClose}>
+    <div className="sheet" onClick={e=>e.stopPropagation()}>
+      <div className="sheet-handle"/>
+      {items.map((item,i)=><div key={i} className="custom-select-option"
+        style={{color:item.danger?C.merlot:C.text,fontWeight:600}}
+        onClick={()=>{item.action();onClose();}}>
+        {item.label}
+      </div>)}
+      <button className="btn btn-secondary" style={{width:'100%',marginTop:10}} onClick={onClose}>Zrušit</button>
+    </div>
+  </div>;
+}
 
 // ── API – Apps Script ──────────────────────────────────
 function mkId(){return 'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,9);}
@@ -399,106 +433,133 @@ function TodayView({gc,member,checkins,profiles,doCI,settings}){
   const schedJson=settings?.find(s=>s.key==='schedule')?.value;
   const sched=schedJson?JSON.parse(schedJson):SCHEDULE;
   const session=getTodaySession(sched);
+  const next=getNextTrainingDay(sched);
   const today=todayStr();
   const myCI=checkins.find(c=>c.member===member&&c.date===today);
-  const st=myCI?.status;
+  const st=(!myCI?.status||myCI.status==='none')?null:myCI.status;
+  const nextCI=next?checkins.find(c=>c.member===member&&c.date===next.date):null;
+  const nextSt=(!nextCI?.status||nextCI.status==='none')?null:nextCI.status;
   const [noteModal,setNoteModal]=useState(false);
   const [excuseModal,setExcuseModal]=useState(false);
   const [note,setNote]=useState('');
   const {score,streak}=calcScore(checkins,member);
 
-  const mark=(status,noteText='')=>{
-    doCI(member,today,status,noteText);
-  };
+  const squadToday=MEMBERS.map(m=>({m,ci:checkins.find(c=>c.member===m&&c.date===today),av:profiles.find(p=>p.member===m)?.avatar_data}));
+  const squadNext=next?MEMBERS.map(m=>({m,ci:checkins.find(c=>c.member===m&&c.date===next.date),av:profiles.find(p=>p.member===m)?.avatar_data})):[];
 
-  const squadForToday=MEMBERS.map(m=>({m,ci:checkins.find(c=>c.member===m&&c.date===today),av:profiles.find(p=>p.member===m)?.avatar_data}));
+  const ciCardStyle={marginBottom:12,
+    ...(st==='done'||st==='pr'?{borderColor:'rgba(34,197,94,.35)',background:'rgba(34,197,94,.05)'}:
+       st==='excused'?{borderColor:'rgba(88,88,112,.25)',background:'rgba(88,88,112,.03)'}:{})};
 
-  const statusLabel=s=>{
-    if(s==='done'||s==='pr')return <span className="badge badge-green"><IcoCheck/>Byl jsem tam</span>;
-    if(s==='planned')return <span className="badge badge-amber"><IcoClock/>Budu tam</span>;
-    if(s==='excused')return <span className="badge badge-dim">Výmluva</span>;
+  const StatusIcon=({s})=>{
+    if(!s||s==='none')return <span style={{fontSize:13,color:C.dim}}>?</span>;
+    if(s==='done'||s==='pr')return <span style={{color:C.green,display:'flex'}}><IcoCheck/></span>;
+    if(s==='planned')return <span style={{color:C.amber,display:'flex'}}><IcoClock/></span>;
+    if(s==='missed')return <span style={{color:C.merlot,display:'flex'}}><IcoX/></span>;
+    if(s==='excused')return <span style={{fontSize:12,color:C.dim}}>omluven</span>;
     return null;
   };
 
   return <div className="screen" style={{padding:'0 16px'}}>
-    <div style={{padding:'20px 0 8px'}}>
+    <div style={{padding:'20px 0 10px'}}>
       <div style={{fontFamily:'Bebas Neue',fontSize:28,letterSpacing:1.5}}>DNES</div>
       <div style={{fontSize:13,color:C.dim}}>{session?`${session.name} · ${session.time}${session.duration?` · ${session.duration} min`:''}`:'Dnes je volno — odpočinek'}</div>
     </div>
 
-    {session&&<>
-      <div className="card" style={{marginBottom:12}}>
-        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:st&&st!=='none'?12:16}}>
-          <div>
-            <div style={{fontFamily:'Bebas Neue',fontSize:22,letterSpacing:1,marginBottom:2}}>{session.name}</div>
-            <div style={{fontSize:13,color:C.dim}}>{session.time}</div>
-          </div>
-          {statusLabel(st)}
+    {/* Check-in karta — pouze pokud je dnes trénink */}
+    {session&&<div className="card" style={ciCardStyle}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+        <div>
+          <div style={{fontFamily:'Bebas Neue',fontSize:22,letterSpacing:1}}>{session.name}</div>
+          <div style={{fontSize:13,color:C.dim}}>{session.time}{session.duration?` · ${session.duration} min`:''}</div>
         </div>
+      </div>
 
-        {/* No status or planned → show action buttons */}
-        {(!st||st==='none'||st==='planned')&&<>
-          <div className="btn-row btn-row-2" style={{marginBottom:10}}>
-            <button className="btn btn-primary" onClick={()=>setNoteModal(true)}>
-              <IcoCheck/>Check-in
-            </button>
-            <button className="btn btn-secondary" onClick={()=>setExcuseModal(true)}>
-              Výmluva
-            </button>
+      {/* Byl jsem tam */}
+      {(st==='done'||st==='pr')&&<>
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:myCI?.note?10:12}}>
+          <div style={{width:44,height:44,borderRadius:'50%',background:'rgba(34,197,94,.15)',border:'2px solid rgba(34,197,94,.4)',display:'flex',alignItems:'center',justifyContent:'center',color:C.green,flexShrink:0}}><IcoCheck/></div>
+          <div>
+            <div style={{fontWeight:700,fontSize:16,color:C.green}}>Byl jsem tam</div>
+            {st==='pr'&&<div style={{fontSize:11,color:C.merlot,fontWeight:700,textTransform:'uppercase',letterSpacing:.5}}>Personal record!</div>}
           </div>
-          {(!st||st==='none')&&<div className="btn-row btn-row-fill">
-            <button className="btn btn-secondary" style={{color:C.amber,borderColor:'rgba(245,158,11,.25)',background:'rgba(245,158,11,.06)'}} onClick={()=>mark('planned')}>
-              <IcoClock/>Budu tam
-            </button>
-          </div>}
-        </>}
+        </div>
+        {myCI?.note&&<div style={{fontSize:13,color:C.dim,background:C.s2,borderRadius:10,padding:'10px 14px',marginBottom:10}}>{myCI.note}</div>}
+        <button className="btn btn-secondary btn-sm" style={{gap:6}} onClick={()=>{setNote(myCI?.note||'');setNoteModal(true);}}><IcoEdit/>Upravit záznam</button>
+      </>}
 
-        {/* Done / PR */}
-        {(st==='done'||st==='pr')&&<>
-          {myCI.note&&<div style={{fontSize:13,color:C.dim,background:C.s2,borderRadius:10,padding:'10px 14px',marginBottom:12}}>{myCI.note}</div>}
-          <button className="btn btn-secondary btn-sm" style={{gap:6}} onClick={()=>{setNote(myCI.note||'');setNoteModal(true);}}>
-            <IcoEdit/>Upravit záznam
-          </button>
-        </>}
+      {/* Výmluva */}
+      {st==='excused'&&<>
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:myCI?.note?10:12}}>
+          <div style={{width:44,height:44,borderRadius:'50%',background:'rgba(88,88,112,.1)',border:'2px solid rgba(88,88,112,.25)',display:'flex',alignItems:'center',justifyContent:'center',color:C.dim,flexShrink:0}}><IcoX/></div>
+          <div style={{fontWeight:700,fontSize:16,color:C.dim}}>Výmluva</div>
+        </div>
+        {myCI?.note&&<div style={{fontSize:13,color:C.dim,background:C.s2,borderRadius:10,padding:'10px 14px',marginBottom:10}}>{myCI.note}</div>}
+        <button className="btn btn-secondary btn-sm" style={{gap:6}} onClick={()=>{setNote(myCI?.note||'');setExcuseModal(true);}}><IcoEdit/>Upravit výmluvu</button>
+      </>}
 
-        {/* Excused */}
-        {st==='excused'&&<>
-          {myCI.note&&<div style={{fontSize:13,color:C.dim,background:C.s2,borderRadius:10,padding:'10px 14px',marginBottom:12}}>{myCI.note}</div>}
-          <button className="btn btn-secondary btn-sm" style={{gap:6}} onClick={()=>{setNote(myCI.note||'');setExcuseModal(true);}}>
-            <IcoEdit/>Upravit výmluvu
-          </button>
-        </>}
-      </div>
+      {/* Nezalogováno */}
+      {(!st||st==='planned')&&<div className="btn-row btn-row-2">
+        <button className="btn btn-primary" onClick={()=>{setNote('');setNoteModal(true);}}><IcoCheck/>Check-in</button>
+        <button className="btn btn-secondary" onClick={()=>{setNote('');setExcuseModal(true);}}>Výmluva</button>
+      </div>}
+    </div>}
 
-      {/* Squad for today */}
-      <div style={{fontFamily:'Bebas Neue',fontSize:18,letterSpacing:1,marginBottom:10}}>DNEŠNÍ SESTAVA</div>
-      <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
-        {squadForToday.map(({m,ci,av})=>{
-          const s=ci?.status;
-          return <div key={m} className="card" style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px'}}>
-            <Av member={m} size={40} avatar={av} showStatus checkins={checkins}/>
-            <div style={{flex:1}}>
-              <div style={{fontWeight:600,fontSize:15}}>{m}</div>
-              {ci?.note&&<div style={{fontSize:12,color:C.dim,marginTop:2}}>{ci.note}</div>}
-            </div>
-            <div>
-              {(!s||s==='none')&&<span style={{fontSize:12,color:C.dim}}>?</span>}
-              {(s==='done'||s==='pr')&&<span style={{color:C.green}}><IcoCheck/></span>}
-              {s==='planned'&&<span style={{color:C.amber}}><IcoClock/></span>}
-              {s==='missed'&&<span style={{color:C.merlot}}><IcoX/></span>}
-              {s==='excused'&&<span style={{fontSize:12,color:C.dim}}>omluven</span>}
-            </div>
-          </div>;
-        })}
-      </div>
-    </>}
-
-    {!session&&<div className="card" style={{marginBottom:16,textAlign:'center',padding:'32px 16px'}}>
+    {/* Rest day */}
+    {!session&&<div className="card" style={{marginBottom:12,textAlign:'center',padding:'28px 16px'}}>
       <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Dnes není trénink</div>
       <div style={{fontSize:13,color:C.dim}}>Odpočinek je taky potřeba</div>
     </div>}
 
-    <div className="card" style={{marginBottom:24}}>
+    {/* Dnešní sestava */}
+    {session&&<>
+      <div style={{fontFamily:'Bebas Neue',fontSize:18,letterSpacing:1,marginBottom:10}}>DNEŠNÍ SESTAVA</div>
+      <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
+        {squadToday.map(({m,ci,av})=><div key={m} className="card" style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px'}}>
+          <Av member={m} size={40} avatar={av} showStatus checkins={checkins}/>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:600,fontSize:15}}>{m}</div>
+            {ci?.note&&<div style={{fontSize:12,color:C.dim,marginTop:2}}>{ci.note}</div>}
+          </div>
+          <StatusIcon s={ci?.status}/>
+        </div>)}
+      </div>
+    </>}
+
+    {/* Příští trénink */}
+    {next&&<>
+      <div style={{display:'flex',alignItems:'baseline',gap:10,marginBottom:10}}>
+        <div style={{fontFamily:'Bebas Neue',fontSize:18,letterSpacing:1}}>PŘÍŠTÍ TRÉNINK</div>
+        <div style={{fontSize:12,color:C.dim}}>{next.dayLabel} · {next.session.name}</div>
+      </div>
+      <div className="card" style={{marginBottom:16,...(nextSt==='planned'?{borderColor:'rgba(245,158,11,.25)',background:'rgba(245,158,11,.04)'}:{})}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+          <div style={{fontSize:13,color:C.dim}}>Moje potvrzení</div>
+          {nextSt==='planned'
+            ?<div style={{display:'flex',alignItems:'center',gap:8}}>
+              <span className="badge badge-amber"><IcoClock/>Budu tam</span>
+              <button className="btn btn-secondary btn-sm" style={{height:30,fontSize:11,padding:'0 10px'}} onClick={()=>doCI(member,next.date,'none')}>Odvolat</button>
+            </div>
+            :<button className="btn btn-secondary btn-sm" style={{color:C.amber,borderColor:'rgba(245,158,11,.3)',background:'rgba(245,158,11,.06)'}} onClick={()=>doCI(member,next.date,'planned')}>
+              <IcoClock/>Budu tam {next.dayLabel}
+            </button>
+          }
+        </div>
+        <div style={{display:'flex',gap:10}}>
+          {squadNext.map(({m,ci,av})=>{
+            const s=ci?.status&&ci.status!=='none'?ci.status:null;
+            return <div key={m} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,flex:1}}>
+              <Av member={m} size={32} avatar={av}/>
+              <div style={{fontSize:10,color:C.dim}}>{m}</div>
+              <StatusIcon s={s}/>
+            </div>;
+          })}
+        </div>
+      </div>
+    </>}
+
+    {/* Skóre */}
+    <div className="card" style={{marginBottom:16}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <div>
           <div style={{fontSize:12,color:C.dim,textTransform:'uppercase',letterSpacing:.4,marginBottom:4}}>Tvé skóre</div>
@@ -540,14 +601,33 @@ function TodayView({gc,member,checkins,profiles,doCI,settings}){
 }
 
 // ── Score View ─────────────────────────────────────────
-function ScoreView({gc,member,checkins,profiles}){
+function ScoreView({gc,member,checkins,profiles,doCI}){
   const scores=MEMBERS.map(m=>{
     const {score,streak,maxStreak}=calcScore(checkins,m);
     const total=checkins.filter(c=>c.member===m&&(c.status==='done'||c.status==='pr')).length;
     return {m,score,streak,maxStreak,total,av:profiles.find(p=>p.member===m)?.avatar_data};
   }).sort((a,b)=>b.score-a.score);
   const maxScore=scores[0]?.score||1;
-  const myHistory=checkins.filter(c=>c.member===member&&c.status!=='planned').sort((a,b)=>a.date>b.date?-1:1).slice(0,14);
+  const myHistory=checkins.filter(c=>c.member===member&&c.status!=='planned'&&c.status!=='none').sort((a,b)=>a.date>b.date?-1:1).slice(0,20);
+  const [lpItem,setLpItem]=useState(null); // long-pressed check-in
+  const [editNote,setEditNote]=useState('');
+  const [editModal,setEditModal]=useState(false);
+
+  function CIRow({c}){
+    const lp=useLongPress(()=>setLpItem(c));
+    return <div {...lp} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:`1px solid ${C.border}`,userSelect:'none',WebkitUserSelect:'none'}}>
+      <div style={{width:36,textAlign:'center'}}>
+        {(c.status==='done'||c.status==='pr')&&<span style={{color:C.green}}><IcoCheck/></span>}
+        {c.status==='missed'&&<span style={{color:C.merlot}}><IcoX/></span>}
+        {c.status==='excused'&&<span style={{fontSize:12,color:C.dim}}>omluven</span>}
+      </div>
+      <div style={{flex:1}}>
+        <div style={{fontSize:14,fontWeight:600}}>{c.date}</div>
+        {c.note&&<div style={{fontSize:12,color:C.dim,marginTop:2}}>{c.note}</div>}
+      </div>
+      {c.status==='pr'&&<span className="badge badge-red" style={{fontSize:10}}>PR</span>}
+    </div>;
+  }
 
   return <div className="screen" style={{padding:'0 16px'}}>
     <div style={{padding:'20px 0 8px'}}>
@@ -571,22 +651,30 @@ function ScoreView({gc,member,checkins,profiles}){
         </div>
       </div>)}
     </div>
-    <div style={{fontFamily:'Bebas Neue',fontSize:18,letterSpacing:1,marginBottom:10}}>TVOJE POSLEDNÍ TRÉNINKY</div>
+    <div style={{fontFamily:'Bebas Neue',fontSize:18,letterSpacing:1,marginBottom:4}}>TVOJE POSLEDNÍ TRÉNINKY</div>
+    <div style={{fontSize:12,color:C.dim,marginBottom:12}}>Podrž záznam pro úpravu</div>
     {myHistory.length===0&&<div className="empty-state"><div className="empty-state-title">Zatím žádné záznamy</div><div>Začni tréninky logovat dnes</div></div>}
-    <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:24}}>
-      {myHistory.map(c=><div key={c.date+c.member} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:`1px solid ${C.border}`}}>
-        <div style={{width:40,textAlign:'center'}}>
-          {(c.status==='done'||c.status==='pr')&&<span style={{color:C.green}}><IcoCheck/></span>}
-          {c.status==='missed'&&<span style={{color:C.merlot}}><IcoX/></span>}
-          {c.status==='excused'&&<span style={{fontSize:12,color:C.dim}}>omluven</span>}
-        </div>
-        <div style={{flex:1}}>
-          <div style={{fontSize:14,fontWeight:600}}>{c.date}</div>
-          {c.note&&<div style={{fontSize:12,color:C.dim,marginTop:2}}>{c.note}</div>}
-        </div>
-        {c.status==='pr'&&<span className="badge badge-red" style={{fontSize:10}}>PR</span>}
-      </div>)}
+    <div style={{display:'flex',flexDirection:'column',marginBottom:24}}>
+      {myHistory.map(c=><CIRow key={c.date+c.member} c={c}/>)}
     </div>
+
+    {lpItem&&<LongPressMenu onClose={()=>setLpItem(null)} items={[
+      {label:'Upravit poznámku',action:()=>{setEditNote(lpItem.note||'');setEditModal(true);}},
+      {label:'Smazat záznam',danger:true,action:()=>doCI(member,lpItem.date,'none','')},
+    ]}/>}
+
+    {editModal&&<div className="overlay" onClick={()=>setEditModal(false)}>
+      <div className="sheet" onClick={e=>e.stopPropagation()}>
+        <div className="sheet-handle"/>
+        <div style={{fontFamily:'Bebas Neue',fontSize:20,letterSpacing:1,marginBottom:4}}>UPRAVIT ZÁZNAM</div>
+        <div style={{fontSize:13,color:C.dim,marginBottom:16}}>{lpItem?.date}</div>
+        <textarea placeholder="Poznámka k tréninku..." value={editNote} onChange={e=>setEditNote(e.target.value)} style={{marginBottom:16}}/>
+        <div className="btn-row btn-row-2">
+          <button className="btn btn-secondary" onClick={()=>setEditModal(false)}>Zrušit</button>
+          <button className="btn btn-primary" onClick={()=>{doCI(member,lpItem.date,lpItem.status,editNote);setEditModal(false);setLpItem(null);}}>Uložit</button>
+        </div>
+      </div>
+    </div>}
   </div>;
 }
 
@@ -734,12 +822,13 @@ function StatsModal({profile,member,gc,onClose,doProfile}){
 }
 
 // ── Me View ────────────────────────────────────────────
-function MeView({gc,member,checkins,prs,profiles,doPR,doProfile}){
+function MeView({gc,member,checkins,prs,profiles,doPR,doProfile,doDeletePR}){
   const fileRef=useRef();
   const [prModal,setPrModal]=useState(false);
   const [statsModal,setStatsModal]=useState(false);
   const [cropSrc,setCropSrc]=useState(null);
   const [exercise,setExercise]=useState('');const [prVal,setPrVal]=useState('');const [prUnit,setPrUnit]=useState('kg');
+  const [lpPR,setLpPR]=useState(null);
 
   const profile=profiles.find(p=>p.member===member);
   const av=profile?.avatar_data;
@@ -815,13 +904,22 @@ function MeView({gc,member,checkins,prs,profiles,doPR,doProfile}){
       <button className="btn btn-secondary btn-sm" onClick={()=>setPrModal(true)}><IcoPlus/>Přidat</button>
     </div>
     {myPRs.length===0&&<div style={{color:C.dim,fontSize:13,textAlign:'center',padding:'20px 0',marginBottom:16}}>Zatím žádné osobáky. Začni makat!</div>}
+    <div style={{fontSize:12,color:C.dim,marginBottom:10}}>Podrž pro úpravu nebo smazání</div>
     <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:24}}>
-      {myPRs.map(pr=><div key={pr.exercise} className="card" style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px'}}>
-        <div style={{color:C.merlot}}><IcoTrophy/></div>
-        <div style={{flex:1}}><div style={{fontWeight:600,fontSize:14}}>{pr.exercise}</div><div style={{fontSize:12,color:C.dim}}>{pr.date}</div></div>
-        <div style={{fontFamily:'Bebas Neue',fontSize:22,color:C.merlot}}>{pr.value} <span style={{fontSize:14,color:C.dim}}>{pr.unit}</span></div>
-      </div>)}
+      {myPRs.map(pr=>{
+        const lp=useLongPress(()=>setLpPR(pr));
+        return <div key={pr.exercise} {...lp} className="card" style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',userSelect:'none',WebkitUserSelect:'none'}}>
+          <div style={{color:C.merlot}}><IcoTrophy/></div>
+          <div style={{flex:1}}><div style={{fontWeight:600,fontSize:14}}>{pr.exercise}</div><div style={{fontSize:12,color:C.dim}}>{pr.date}</div></div>
+          <div style={{fontFamily:'Bebas Neue',fontSize:22,color:C.merlot}}>{pr.value} <span style={{fontSize:14,color:C.dim}}>{pr.unit}</span></div>
+        </div>;
+      })}
     </div>
+
+    {lpPR&&<LongPressMenu onClose={()=>setLpPR(null)} items={[
+      {label:'Upravit',action:()=>{setExercise(lpPR.exercise);setPrVal(String(lpPR.value));setPrUnit(lpPR.unit);setPrModal(true);}},
+      {label:'Smazat',danger:true,action:()=>doDeletePR(member,lpPR.exercise)},
+    ]}/>}
 
     {prModal&&<div className="overlay overlay-center" onClick={()=>setPrModal(false)}>
       <div className="modal" onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:360}}>
@@ -1105,6 +1203,11 @@ function MainApp({gc,member}){
     upsertProgress(challengeId,gc,member,value);
   },[gc]);
 
+  const doDeletePR=useCallback((member,exercise)=>{
+    setPrs(p=>p.filter(r=>!(r.member===member&&r.exercise===exercise)));
+    apiPost('deletePR',{group_code:gc,member,exercise});
+  },[gc]);
+
   const doSetting=useCallback((key,value)=>{
     setSettings(p=>[...p.filter(s=>!(s.group_code===gc&&s.key===key)),{group_code:gc,key,value,updated_at:Date.now()}]);
     upsertSettingApi(gc,key,value);
@@ -1138,9 +1241,9 @@ function MainApp({gc,member}){
   return <div style={{height:'100vh',display:'flex',flexDirection:'column',background:C.bg}}>
     {syncing&&<div style={{position:'fixed',top:0,left:0,right:0,height:2,background:C.merlot,zIndex:999,animation:'syncbar 1s linear infinite'}}/>}
     {tab==='dnes'&&<TodayView gc={gc} member={member} checkins={checkins} profiles={profiles} doCI={doCI} settings={settings}/>}
-    {tab==='skore'&&<ScoreView gc={gc} member={member} checkins={checkins} profiles={profiles}/>}
+    {tab==='skore'&&<ScoreView gc={gc} member={member} checkins={checkins} profiles={profiles} doCI={doCI}/>}
     {tab==='vyzvy'&&<ChallengesView gc={gc} member={member} challenges={challenges} progress={progress} profiles={profiles} doChallenge={doChallenge} doProgress={doProgress}/>}
-    {tab==='ja'&&<MeView gc={gc} member={member} checkins={checkins} prs={prs} profiles={profiles} doPR={doPR} doProfile={doProfile}/>}
+    {tab==='ja'&&<MeView gc={gc} member={member} checkins={checkins} prs={prs} profiles={profiles} doPR={doPR} doProfile={doProfile} doDeletePR={doDeletePR}/>}
     {tab==='parta'&&<SquadView gc={gc} member={member} checkins={checkins} profiles={profiles} prs={prs} settings={settings} doSetting={doSetting}/>}
     <nav className="nav">
       {navItems.map(n=><div key={n.id} className={`nav-btn${tab===n.id?' on':''}`} onClick={()=>setTab(n.id)}>
