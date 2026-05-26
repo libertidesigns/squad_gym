@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Squad Gym</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Squad Gym">
+<meta name="theme-color" content="#0B0B10">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body,#root{height:100%;overflow:hidden}
+body{background:#0B0B10;font-family:'Inter',sans-serif;color:#EDEDF2;-webkit-font-smoothing:antialiased}
+#root{display:flex;flex-direction:column}
+
+/* SCROLL AREA */
+.screen{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:76px;-webkit-overflow-scrolling:touch}
+.screen::-webkit-scrollbar{display:none}
+
+/* BOTTOM NAV */
+.nav{
+  position:fixed;bottom:0;left:0;right:0;
+  height:64px;padding-bottom:env(safe-area-inset-bottom);
+  background:rgba(13,13,20,.95);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:1px solid rgba(255,255,255,.06);
+  display:flex;z-index:100
+}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:opacity .1s;user-select:none;-webkit-user-select:none}
+.nav-btn:active{opacity:.5}
+.nav-lbl{font-size:10px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:#5A5A72;transition:color .15s}
+.nav-btn.on .nav-lbl{color:#FF6B2B}
+.nav-ico{transition:color .15s;color:#3A3A52}
+.nav-btn.on .nav-ico{color:#FF6B2B}
+
+/* CARDS */
+.card{background:#13131C;border:1px solid #1E1E2C;border-radius:16px;padding:16px}
+.card-sm{background:#13131C;border:1px solid #1E1E2C;border-radius:12px;padding:12px}
+
+/* BUTTONS */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-weight:700;border-radius:14px;transition:all .12s;user-select:none;-webkit-user-select:none;letter-spacing:.2px}
+.btn:active{transform:scale(.96);opacity:.85}
+.btn-orange{background:#FF6B2B;color:#fff;height:52px;padding:0 24px;font-size:14px;text-transform:uppercase;letter-spacing:.8px}
+.btn-orange:hover{background:#ff7a40}
+.btn-ghost{background:#1A1A26;color:#EDEDF2;height:48px;padding:0 20px;font-size:13px;font-weight:600;border:1px solid #252535}
+.btn-ghost:hover{background:#1e1e2e}
+.btn-dim{background:transparent;color:#5A5A72;height:40px;padding:0 16px;font-size:12px;font-weight:600}
+.btn-green{background:#10B981;color:#fff;height:52px;padding:0 24px;font-size:14px;text-transform:uppercase;letter-spacing:.8px}
+.btn-full{width:100%}
+
+/* TYPOGRAPHY */
+.display{font-family:'Bebas Neue',sans-serif;letter-spacing:1px;line-height:1}
+.label-xs{font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:#5A5A72}
+.label-sm{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:#5A5A72}
+
+/* INPUT */
+.inp{width:100%;background:#1A1A26;border:1.5px solid #252535;border-radius:12px;padding:13px 16px;font-size:14px;color:#EDEDF2;font-family:'Inter',sans-serif;transition:border-color .15s;outline:none}
+.inp:focus{border-color:#FF6B2B}
+.inp::placeholder{color:#3A3A52}
+textarea.inp{resize:none;min-height:90px;line-height:1.5}
+
+/* PILL / BADGE */
+.pill{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.4px}
+.pill-orange{background:rgba(255,107,43,.15);color:#FF6B2B;border:1px solid rgba(255,107,43,.25)}
+.pill-green{background:rgba(16,185,129,.15);color:#10B981;border:1px solid rgba(16,185,129,.2)}
+.pill-blue{background:rgba(99,102,241,.15);color:#818CF8;border:1px solid rgba(99,102,241,.2)}
+.pill-amber{background:rgba(251,191,36,.12);color:#FBBF24;border:1px solid rgba(251,191,36,.2)}
+.pill-red{background:rgba(239,68,68,.12);color:#F87171;border:1px solid rgba(239,68,68,.2)}
+.pill-dim{background:rgba(255,255,255,.05);color:#5A5A72;border:1px solid rgba(255,255,255,.08)}
+
+/* AVATAR */
+.av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;font-family:'Inter',sans-serif}
+.av-lg{width:56px;height:56px;font-size:18px}
+.av-md{width:44px;height:44px;font-size:14px}
+.av-sm{width:34px;height:34px;font-size:12px}
+.av-xs{width:26px;height:26px;font-size:10px}
+
+/* DIVIDER */
+.divider{height:1px;background:#1E1E2C;margin:0}
+
+/* STAT TILE */
+.stat-tile{background:#13131C;border:1px solid #1E1E2C;border-radius:14px;padding:14px 12px;text-align:center;flex:1}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;letter-spacing:.5px}
+.stat-lbl{font-size:10px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#5A5A72;margin-top:4px}
+
+/* PROGRESS BAR */
+.prog-wrap{height:5px;background:#1E1E2C;border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width .7s cubic-bezier(.4,0,.2,1)}
+
+/* LIST ROW */
+.row{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid #1A1A26}
+.row:last-child{border-bottom:none}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.sheet{
+  background:#13131C;border-radius:24px 24px 0 0;width:100%;max-width:480px;
+  padding:20px 20px calc(20px + env(safe-area-inset-bottom));
+  border-top:1px solid #1E1E2C;
+  animation:up .22s cubic-bezier(.4,0,.2,1)
+}
+@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.handle{width:36px;height:4px;background:#252535;border-radius:2px;margin:0 auto 20px}
+.sheet-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:4px}
+
+/* ATTENDANCE */
+.att-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.att-cell{display:flex;flex-direction:column;align-items:center;gap:5px}
+.att-name{font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+.att-ring{border-radius:50%;padding:3px;flex-shrink:0}
+
+/* LEADERBOARD ROW */
+.lb{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.lb-rank{font-family:'Bebas Neue',sans-serif;font-size:22px;width:26px;flex-shrink:0;text-align:center;line-height:1}
+.lb-pts{font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1;flex-shrink:0}
+
+/* SETUP */
+.setup{min-height:100vh;display:flex;flex-direction:column;padding:32px 20px;gap:24px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.step-circle{width:26px;height:26px;border-radius:50%;background:#FF6B2B;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* WORKOUT TAG */
+.wtag{display:inline-flex;align-items:center;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+
+/* PAGE HEADER */
+.ph{padding:20px 20px 0}
+.ph-title{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:1.5px;line-height:1}
+.ph-sub{font-size:12px;color:#5A5A72;margin-top:2px;font-weight:500}
+
+/* SECTION */
+.sec{padding:16px 20px 0}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sec-title{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#5A5A72}
+
+/* WEEK ROW */
+.week-row{display:flex;align-items:center;padding:11px 0;border-bottom:1px solid #181820}
+.week-row:last-child{border-bottom:none}
+
+/* CHECK-IN DONE */
+.done-ring{width:64px;height:64px;border-radius:50%;border:2.5px solid #10B981;background:rgba(16,185,129,.1);display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+
+/* MEMBER SELECT */
+.mem-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mem-card{background:#13131C;border:2px solid #1E1E2C;border-radius:18px;padding:22px 16px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;transition:all .15s;user-select:none;-webkit-user-select:none}
+.mem-card:active{transform:scale(.96)}
+
+/* REASON BTN */
+.reason-btn{width:100%;background:#1A1A26;border:1.5px solid #252535;border-radius:12px;padding:13px 16px;text-align:left;color:#EDEDF2;font-size:13px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer;transition:background .1s;margin-bottom:8px;display:block}
+.reason-btn:active{background:#1e1e2e}
+
+/* PR ROW */
+.pr-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #181820}
+.pr-row:last-child{border-bottom:none}
+
+/* FADE */
+.fade{animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* STREAK FIRE */
+.fire{display:inline-flex;align-items:center;gap:3px;background:#1E1E2C;border-radius:20px;padding:3px 8px 3px 6px;font-size:12px;font-weight:700;color:#FBBF24}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:32px 16px}
+.empty-title{font-size:14px;font-weight:600;color:#3A3A52;margin-bottom:4px}
+.empty-sub{font-size:12px;color:#2A2A3E}
+
+/* MISSED POPUP */
+.missed-header{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#1A1A26;border-radius:12px;margin-bottom:16px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback, useMemo, useRef } = React;
+
+// ─── TOKENS ────────────────────────────────────────────────────────────────────
+const C = {
+  bg:'#0B0B10', s1:'#13131C', s2:'#1A1A26', border:'#1E1E2C',
+  text:'#EDEDF2', dim:'#5A5A72', muted:'#3A3A52',
+  orange:'#FF6B2B', green:'#10B981', blue:'#818CF8', amber:'#FBBF24', red:'#F87171',
+};
+
+// ─── CONSTANTS ──────────────────────────────────────────────────────────────────
+const MEMBERS = ['Indy','Ričrd','Ondra','Pepa'];
+const MEMBER_STYLE = {
+  Indy:  { color:'#FF6B2B', bg:'rgba(255,107,43,.18)' },
+  Ričrd: { color:'#818CF8', bg:'rgba(129,140,248,.18)' },
+  Ondra: { color:'#10B981', bg:'rgba(16,185,129,.18)'  },
+  Pepa:  { color:'#FBBF24', bg:'rgba(251,191,36,.18)'  },
+};
+const SCHEDULE = {
+  1:[{id:'gym',  name:'Gym',        time:'10:00',color:C.orange}],
+  2:[{id:'cal',  name:'Kalistenika',time:'10:00',color:C.blue  },{id:'run',name:'Běh',time:'10:00',color:C.green}],
+  3:null,
+  4:[{id:'gym',  name:'Gym',        time:'10:00',color:C.orange},{id:'run',name:'Běh',time:'10:00',color:C.green}],
+  5:[{id:'gym',  name:'Gym',        time:'10:00',color:C.orange},{id:'run',name:'Běh',time:'10:00',color:C.green}],
+  6:[{id:'swim', name:'Plavání',    time:'18:00',color:C.blue  }],
+  0:null,
+};
+const DAYS    = ['Neděle','Pondělí','Úterý','Středa','Čtvrtek','Pátek','Sobota'];
+const MONTHS  = ['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'];
+const MONTHS_SHORT = ['Led','Úno','Bře','Dub','Kvě','Čer','Čvc','Srp','Zář','Říj','Lis','Pro'];
+const PTS = { present:10, log:2, pr:5, penalty:5 };
+const streakMulti = s => s>=30?3:s>=14?2.5:s>=7?2:s>=3?1.5:1;
+
+// ─── UTILS ──────────────────────────────────────────────────────────────────────
+const dk = (d=new Date()) => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+const yesterday = () => { const d=new Date(); d.setDate(d.getDate()-1); return d; };
+const hasSched = d => !!SCHEDULE[d instanceof Date ? d.getDay() : new Date(...[d.slice(0,4),d.slice(4,6)-1,d.slice(6,8)].map(Number)).getDay()];
+
+// ─── SUPABASE ────────────────────────────────────────────────────────────────────
+const SB_URL = 'https://brgetggvmoskbfahhugo.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyZ2V0Z2d2bW9za2JmYWhodWdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MzQwMDEsImV4cCI6MjA5NTMxMDAwMX0.ewxljMGZkS8026bEOvtrm3rXtVg-ZSz_jMoJXWxv680';
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+// Transform flat Supabase rows → nested { dayKey: { member: {...} } }
+function rowsToCI(rows) {
+  const r = {};
+  for (const row of (rows||[])) {
+    if (!r[row.day_key]) r[row.day_key] = {};
+    r[row.day_key][row.member] = {
+      status: row.status, excuseReason: row.excuse_reason,
+      checkInTime: row.check_in_time, log: row.log,
+      prBeaten: row.pr_beaten, lateCheckin: row.late_checkin
+    };
+  }
+  return r;
+}
+function rowsToPRs(rows) {
+  const r = {};
+  for (const row of (rows||[])) r[`${row.member}_${row.exercise}`] = {
+    member: row.member, exercise: row.exercise,
+    value: row.value, unit: row.unit, date: row.day_key
+  };
+  return r;
+}
+
+async function upsertCI(groupCode, dayKey, member, data) {
+  await sb.from('sg_checkins').upsert({
+    group_code: groupCode, day_key: dayKey, member,
+    status: data.status, excuse_reason: data.excuseReason||null,
+    check_in_time: data.checkInTime||null, log: data.log||null,
+    pr_beaten: data.prBeaten||false, late_checkin: data.lateCheckin||false
+  }, { onConflict: 'group_code,day_key,member' });
+}
+
+async function upsertPR(groupCode, member, exercise, value, unit, dayKey) {
+  await sb.from('sg_prs').upsert({
+    group_code: groupCode, member, exercise, value, unit, day_key: dayKey
+  }, { onConflict: 'group_code,member,exercise' });
+}
+
+function subscribeCIs(groupCode, onChange) {
+  // initial load
+  sb.from('sg_checkins').select('*').eq('group_code', groupCode)
+    .then(({data}) => onChange(rowsToCI(data)));
+  // realtime
+  return sb.channel(`ci_${groupCode}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'sg_checkins',
+        filter: `group_code=eq.${groupCode}` },
+      () => sb.from('sg_checkins').select('*').eq('group_code', groupCode)
+              .then(({data}) => onChange(rowsToCI(data))))
+    .subscribe();
+}
+
+function subscribePRs(groupCode, onChange) {
+  sb.from('sg_prs').select('*').eq('group_code', groupCode)
+    .then(({data}) => onChange(rowsToPRs(data)));
+  return sb.channel(`pr_${groupCode}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'sg_prs',
+        filter: `group_code=eq.${groupCode}` },
+      () => sb.from('sg_prs').select('*').eq('group_code', groupCode)
+              .then(({data}) => onChange(rowsToPRs(data))))
+    .subscribe();
+}
+
+async function getOneDayCI(groupCode, dayKey) {
+  const {data} = await sb.from('sg_checkins').select('*')
+    .eq('group_code', groupCode).eq('day_key', dayKey);
+  const ci = rowsToCI(data);
+  return ci[dayKey]||{};
+}
+
+// ─── SCORING ────────────────────────────────────────────────────────────────────
+function score(allCI, member) {
+  let total=0,streak=0,maxStreak=0,attended=0,scheduled=0;
+  for(const day of Object.keys(allCI).sort()) {
+    if(!hasSched(day)) continue;
+    scheduled++;
+    const c = allCI[day]?.[member];
+    if(!c) continue;
+    if(c.status==='present') {
+      attended++;
+      const m=streakMulti(streak);
+      total += Math.round((PTS.present+(c.log?PTS.log:0)+(c.prBeaten?PTS.pr:0))*m);
+      streak++; maxStreak=Math.max(maxStreak,streak);
+    } else if(c.status==='absent_unexcused') {
+      total=Math.max(0,total-PTS.penalty); streak=0;
+    }
+  }
+  return { total, streak, maxStreak, attended, scheduled, pct: scheduled?Math.round(attended/scheduled*100):0 };
+}
+
+// ─── ICONS (inline SVG) ─────────────────────────────────────────────────────────
+const Ic = {
+  Cal: () => <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2.5"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+  Trophy: () => <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M6 9H4a2 2 0 01-2-2V5h4"/><path d="M18 9h2a2 2 0 002-2V5h-4"/><path d="M6 5h12v7a6 6 0 01-12 0z"/><path d="M12 18v4M8 22h8"/></svg>,
+  User: () => <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>,
+  Users: () => <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2 20c0-3.3 2.7-6 6-6"/><path d="M16 14c3.3 0 6 2.7 6 6"/><path d="M9 14c1-.3 2-.3 3 0"/></svg>,
+  Check: ({size=20,color=C.green}) => <svg width={size} height={size} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>,
+  X: ({color='currentColor'}) => <svg width="14" height="14" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  Plus: () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  Alert: () => <svg width="20" height="20" fill="none" stroke={C.amber} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  ChevR: () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>,
+  Flame: () => <svg width="13" height="13" viewBox="0 0 24 24" fill={C.amber} stroke={C.amber} strokeWidth="1"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>,
+};
+
+// ─── AVATAR ──────────────────────────────────────────────────────────────────────
+function Av({ name, size='md', status }) {
+  const s = MEMBER_STYLE[name]||{color:C.dim,bg:'#1E1E2C'};
+  const cls = `av av-${size}`;
+  let ring = '';
+  if(status==='present')         ring = `0 0 0 2px ${C.green}`;
+  else if(status==='absent_excused')   ring = `0 0 0 2px ${C.amber}`;
+  else if(status==='absent_unexcused') ring = `0 0 0 2px ${C.red}`;
+  else ring = `0 0 0 2px #252535`;
+  return <div className={cls} style={{background:s.bg,color:s.color,boxShadow:ring}}>{name.slice(0,2).toUpperCase()}</div>;
+}
+
+// ─── PIN SCREEN ───────────────────────────────────────────────────────────────
+function PinScreen({ onDone }) {
+  const [pin,setPin]=useState('');
+  const [err,setErr]=useState('');
+  const [busy,setBusy]=useState(false);
+
+  const digits = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
+
+  async function join() {
+    if(pin.length<4) return;
+    setErr(''); setBusy(true);
+    try {
+      const {error} = await sb.from('sg_checkins').select('id').eq('group_code',pin).limit(1);
+      if(error) throw new Error('Nelze se připojit k databázi');
+      localStorage.setItem('sgCode', pin);
+      setBusy(false); onDone(pin);
+    } catch(e) { setBusy(false); setErr(e.message); }
+  }
+
+  const press = d => {
+    if(d==='⌫') { setPin(p=>p.slice(0,-1)); return; }
+    if(d==='' || pin.length>=6) return;
+    const next = pin+d;
+    setPin(next);
+    if(next.length>=4) setErr('');
+  };
+
+  return (
+    <div style={{height:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'0 32px',gap:0}}>
+      {/* Logo */}
+      <div style={{textAlign:'center',marginBottom:40}}>
+        <div style={{fontFamily:'Bebas Neue',fontSize:48,letterSpacing:3,lineHeight:1}}>
+          Squad<span style={{color:C.orange}}>.</span>Gym
+        </div>
+        <div style={{fontSize:12,color:C.dim,marginTop:4,fontWeight:500}}>Zadej skupinový PIN</div>
+      </div>
+
+      {/* PIN display */}
+      <div style={{display:'flex',gap:12,marginBottom:8,height:56,alignItems:'center'}}>
+        {[0,1,2,3].map(i=>(
+          <div key={i} style={{
+            width:48,height:56,borderRadius:12,
+            background: pin.length>i ? C.s2 : 'transparent',
+            border: `2px solid ${pin.length>i ? C.orange : C.border}`,
+            display:'flex',alignItems:'center',justifyContent:'center',
+            fontFamily:'Bebas Neue',fontSize:32,color:C.orange,
+            transition:'all .15s'
+          }}>
+            {pin.length>i ? '●' : ''}
+          </div>
+        ))}
+      </div>
+
+      {err && <div style={{fontSize:12,color:C.red,marginBottom:8,textAlign:'center'}}>{err}</div>}
+      {!err && <div style={{height:24}}/>}
+
+      {/* Numpad */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,72px)',gap:10,marginBottom:24}}>
+        {digits.map((d,i)=>(
+          <button key={i} onClick={()=>press(d)} disabled={busy}
+            style={{
+              height:64,borderRadius:16,border:'none',cursor:d===''?'default':'pointer',
+              background: d==='' ? 'transparent' : d==='⌫' ? C.s2 : C.s1,
+              border: d===''?'none':`1px solid ${C.border}`,
+              fontFamily:'Bebas Neue',fontSize:d==='⌫'?20:26,letterSpacing:.5,
+              color: d==='⌫' ? C.dim : C.text,
+              transition:'all .1s',
+              opacity: d==='' ? 0 : 1,
+              transform:'scale(1)',
+              WebkitUserSelect:'none',userSelect:'none'
+            }}
+            onTouchStart={e=>{if(d!=='')e.currentTarget.style.background='#252535'}}
+            onTouchEnd={e=>{if(d!=='')e.currentTarget.style.background=d==='⌫'?C.s2:C.s1}}
+          >{d}</button>
+        ))}
+      </div>
+
+      <button className="btn btn-orange btn-full" onClick={join}
+        disabled={busy||pin.length<4}
+        style={{maxWidth:216,opacity:pin.length<4?.4:1,transition:'opacity .2s'}}>
+        {busy ? 'Připojuji…' : 'Vstoupit →'}
+      </button>
+
+      <div style={{fontSize:11,color:C.muted,marginTop:16,textAlign:'center',lineHeight:1.6}}>
+        Pokud ještě nemáš PIN,<br/>zeptej se Indyho.
+      </div>
+    </div>
+  );
+}
+
+// ─── MEMBER SELECT ────────────────────────────────────────────────────────────
+function MemberSelect({ onSelect }) {
+  return (
+    <div className="setup fade">
+      <div>
+        <div style={{fontFamily:'Bebas Neue',fontSize:42,letterSpacing:2,lineHeight:1}}>
+          Kdo <span style={{color:C.orange}}>jsi?</span>
+        </div>
+        <div style={{fontSize:13,color:C.dim,marginTop:6}}>Toto zařízení si tvůj výběr zapamatuje</div>
+      </div>
+      <div className="mem-grid">
+        {MEMBERS.map(name => {
+          const s=MEMBER_STYLE[name];
+          return (
+            <div key={name} className="mem-card" onClick={()=>onSelect(name)}
+              style={{':hover':{borderColor:s.color}}}>
+              <div className="av av-lg" style={{background:s.bg,color:s.color,boxShadow:`0 0 0 2px ${s.color}40`}}>
+                {name.slice(0,2).toUpperCase()}
+              </div>
+              <div style={{fontFamily:'Bebas Neue',fontSize:22,letterSpacing:1,color:s.color}}>{name}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── MISSED WORKOUT MODAL ─────────────────────────────────────────────────────
+function MissedModal({ date, acts, member, groupCode, onClose }) {
+  const [custom,setCustom]=useState('');
+  const [busy,setBusy]=useState(false);
+  const day = `${DAYS[date.getDay()]} ${date.getDate()}. ${MONTHS[date.getMonth()]}`;
+  const dayKey = dk(date);
+
+  const save = async(status,reason='') => {
+    setBusy(true);
+    await upsertCI(groupCode, dayKey, member, status==='present'
+      ? {status:'present', checkInTime:Date.now(), lateCheckin:true}
+      : {status, excuseReason:reason});
+    setBusy(false); onClose();
+  };
+
+  return (
+    <div className="overlay">
+      <div className="sheet">
+        <div className="handle"/>
+        <div className="missed-header">
+          <Ic.Alert/>
+          <div>
+            <div style={{fontSize:12,fontWeight:700,color:C.amber}}>Chybí ti check-in</div>
+            <div style={{fontSize:12,color:C.dim,marginTop:1}}>{day} · {acts.map(a=>a.name).join(' + ')}</div>
+          </div>
+        </div>
+        <div className="sheet-title">Proč jsi<br/>nebyl?</div>
+        <div style={{height:12}}/>
+        <button className="reason-btn" onClick={()=>save('present')} disabled={busy}>
+          <span style={{color:C.green,fontWeight:700}}>Byl jsem — zapomněl jsem zaznamenat</span>
+          <div style={{fontSize:11,color:C.dim,marginTop:2}}>Přidá pozdní check-in</div>
+        </button>
+        {['Nemoc / zdraví','Práce','Zranění','Rodinné důvody'].map(r=>(
+          <button key={r} className="reason-btn" onClick={()=>save('absent_excused',r)} disabled={busy}>{r}</button>
+        ))}
+        <input className="inp" placeholder="Vlastní důvod..." value={custom} onChange={e=>setCustom(e.target.value)} style={{marginBottom:8}}/>
+        {custom.trim() && <button className="btn btn-ghost btn-full" style={{marginBottom:8}} onClick={()=>save('absent_excused',custom.trim())} disabled={busy}>Potvrdit důvod</button>}
+        <button className="btn btn-dim btn-full" style={{color:C.red}} onClick={()=>save('absent_unexcused')} disabled={busy}>Přeskočit (−{PTS.penalty} bodů)</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── CHECK-IN MODAL ───────────────────────────────────────────────────────────
+function CheckInModal({ acts, member, groupCode, dayKey, onClose }) {
+  const [log,setLog]=useState({weight:'',runKm:'',runMin:'',swimLaps:'',swimMin:'',notes:''});
+  const [busy,setBusy]=useState(false);
+  const [done,setDone]=useState(null); // earned points
+  const hasGym  = acts.some(a=>a.id==='gym');
+  const hasRun  = acts.some(a=>a.id==='run');
+  const hasSwim = acts.some(a=>a.id==='swim');
+
+  const confirm = async () => {
+    setBusy(true);
+    const l={};
+    if(log.weight)   l.gymMaxKg  = +log.weight;
+    if(log.runKm)    l.runKm     = +log.runKm;
+    if(log.runMin)   l.runMin    = +log.runMin;
+    if(log.swimLaps) l.swimLaps  = +log.swimLaps;
+    if(log.swimMin)  l.swimMin   = +log.swimMin;
+    if(log.notes)    l.notes     = log.notes;
+    const hasL = Object.keys(l).length>0;
+    const pts  = PTS.present+(hasL?PTS.log:0);
+    await upsertCI(groupCode, dayKey, member, {status:'present', checkInTime:Date.now(), log:hasL?l:null});
+    setBusy(false); setDone(pts);
+  };
+
+  if(done!==null) return (
+    <div className="overlay" onClick={onClose}>
+      <div className="sheet" style={{textAlign:'center'}}>
+        <div className="handle"/>
+        <div className="done-ring"><Ic.Check size={28}/></div>
+        <div style={{fontFamily:'Bebas Neue',fontSize:52,color:C.green,lineHeight:1}}>+{done}</div>
+        <div className="label-sm" style={{marginTop:4}}>bodů získáno</div>
+        <div style={{fontSize:12,color:C.dim,marginTop:8,marginBottom:20}}>Zaznamenáno · {member}</div>
+        <button className="btn btn-ghost btn-full" onClick={onClose}>Zavřít</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="overlay">
+      <div className="sheet">
+        <div className="handle"/>
+        <div className="sheet-title">Check-In</div>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:16,marginTop:4}}>
+          {acts.map(a=><span key={a.id} className="wtag" style={{color:a.color,background:`${a.color}18`,border:`1px solid ${a.color}40`}}>{a.name}</span>)}
+        </div>
+        <div className="label-xs" style={{marginBottom:10}}>Volitelné detaily · +{PTS.log} bonusové body</div>
+        {hasGym && <div style={{marginBottom:10}}>
+          <div className="label-xs" style={{marginBottom:6}}>Max. váha (kg)</div>
+          <input className="inp" type="number" placeholder="100" value={log.weight} onChange={e=>setLog(p=>({...p,weight:e.target.value}))}/>
+        </div>}
+        {hasRun && <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
+          <div>
+            <div className="label-xs" style={{marginBottom:6}}>Vzdálenost (km)</div>
+            <input className="inp" type="number" step="0.1" placeholder="5.0" value={log.runKm} onChange={e=>setLog(p=>({...p,runKm:e.target.value}))}/>
+          </div>
+          <div>
+            <div className="label-xs" style={{marginBottom:6}}>Čas (min)</div>
+            <input className="inp" type="number" placeholder="28" value={log.runMin} onChange={e=>setLog(p=>({...p,runMin:e.target.value}))}/>
+          </div>
+        </div>}
+        {hasSwim && <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
+          <div>
+            <div className="label-xs" style={{marginBottom:6}}>Délky</div>
+            <input className="inp" type="number" placeholder="40" value={log.swimLaps} onChange={e=>setLog(p=>({...p,swimLaps:e.target.value}))}/>
+          </div>
+          <div>
+            <div className="label-xs" style={{marginBottom:6}}>Čas (min)</div>
+            <input className="inp" type="number" placeholder="50" value={log.swimMin} onChange={e=>setLog(p=>({...p,swimMin:e.target.value}))}/>
+          </div>
+        </div>}
+        <div style={{marginBottom:16}}>
+          <div className="label-xs" style={{marginBottom:6}}>Poznámky</div>
+          <input className="inp" placeholder="Jak šel trénink?" value={log.notes} onChange={e=>setLog(p=>({...p,notes:e.target.value}))}/>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <button className="btn btn-green" style={{flex:2}} onClick={confirm} disabled={busy}>{busy?'…':'Hotovo'}</button>
+          <button className="btn btn-ghost" style={{flex:1}} onClick={onClose}>Zrušit</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ABSENCE MODAL ────────────────────────────────────────────────────────────
+function AbsenceModal({ member, groupCode, dayKey, onClose }) {
+  const [reason,setReason]=useState('');
+  const [busy,setBusy]=useState(false);
+  const submit = async() => {
+    setBusy(true);
+    await upsertCI(groupCode, dayKey, member, {status:'absent_excused', excuseReason:reason.trim()});
+    setBusy(false); onClose();
+  };
+  return (
+    <div className="overlay">
+      <div className="sheet">
+        <div className="handle"/>
+        <div className="sheet-title">Omluvenka</div>
+        <div style={{fontSize:13,color:C.dim,marginBottom:16}}>Ostatní uvidí, že dnes nepřijdeš.</div>
+        <div className="label-xs" style={{marginBottom:6}}>Důvod (volitelný)</div>
+        <input className="inp" placeholder="Práce, nemoc, zranění..." value={reason} onChange={e=>setReason(e.target.value)} style={{marginBottom:16}}/>
+        <div style={{display:'flex',gap:8}}>
+          <button className="btn btn-orange" style={{flex:2}} onClick={submit} disabled={busy}>{busy?'…':'Odeslat'}</button>
+          <button className="btn btn-ghost" style={{flex:1}} onClick={onClose}>Zrušit</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ADD PR MODAL ─────────────────────────────────────────────────────────────
+function AddPRModal({ member, groupCode, onClose }) {
+  const presets=[
+    {id:'bench',  name:'Bench press',  unit:'kg'},
+    {id:'squat',  name:'Dřep',         unit:'kg'},
+    {id:'deadlift',name:'Mrtvý tah',   unit:'kg'},
+    {id:'ohp',    name:'OHP',          unit:'kg'},
+    {id:'run5k',  name:'5 km běh',     unit:'min'},
+    {id:'run10k', name:'10 km běh',    unit:'min'},
+    {id:'pullups',name:'Shyby',        unit:'opak.'},
+    {id:'pushups',name:'Kliky',        unit:'opak.'},
+    {id:'swim100',name:'100m plavání', unit:'s'},
+  ];
+  const [ex,setEx]=useState('');
+  const [custom,setCustom]=useState('');
+  const [val,setVal]=useState('');
+  const [busy,setBusy]=useState(false);
+  const sel = presets.find(p=>p.id===ex);
+  const exName = sel?sel.name:custom;
+  const unit = sel?sel.unit:'';
+
+  const save = async() => {
+    if(!exName||!val) return;
+    setBusy(true);
+    await upsertPR(groupCode, member, exName, +val, unit, dk());
+    setBusy(false); onClose();
+  };
+
+  return (
+    <div className="overlay">
+      <div className="sheet">
+        <div className="handle"/>
+        <div className="sheet-title">Nový PR</div>
+        <div className="label-xs" style={{marginBottom:6,marginTop:4}}>Cvičení</div>
+        <select className="inp" value={ex} onChange={e=>{setEx(e.target.value);setCustom('');}} style={{background:'#1A1A26',marginBottom:10}}>
+          <option value="">Vyber cvičení</option>
+          {presets.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+          <option value="_">Vlastní...</option>
+        </select>
+        {ex==='_' && <>
+          <div className="label-xs" style={{marginBottom:6}}>Název</div>
+          <input className="inp" placeholder="Název cvičení" value={custom} onChange={e=>setCustom(e.target.value)} style={{marginBottom:10}}/>
+        </>}
+        <div className="label-xs" style={{marginBottom:6}}>Hodnota {unit&&`(${unit})`}</div>
+        <input className="inp" type="number" step="0.5" placeholder="0" value={val} onChange={e=>setVal(e.target.value)} style={{marginBottom:16}}/>
+        <div style={{display:'flex',gap:8}}>
+          <button className="btn btn-orange" style={{flex:2}} onClick={save} disabled={busy||!exName||!val}>{busy?'…':'Uložit PR'}</button>
+          <button className="btn btn-ghost" style={{flex:1}} onClick={onClose}>Zrušit</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── TODAY VIEW ───────────────────────────────────────────────────────────────
+function TodayView({ member, groupCode, todayCI, allCI }) {
+  const today = new Date();
+  const dow   = today.getDay();
+  const acts  = SCHEDULE[dow];
+  const dayKey= dk(today);
+  const [modal,setModal]=useState(null);
+  const myCI  = todayCI?.[member];
+
+  const statusOf = m => todayCI?.[m]?.status||'pending';
+  const statusLabel = s => s==='present'?'Byl':(s==='absent_excused'?'Omluven':(s==='absent_unexcused'?'Chybí':'?'));
+  const statusColor = s => s==='present'?C.green:(s==='absent_excused'?C.amber:(s==='absent_unexcused'?C.red:C.muted));
+
+  return (
+    <div className="screen fade">
+      {/* Header */}
+      <div style={{padding:'24px 20px 0'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+          <div>
+            <div style={{fontFamily:'Bebas Neue',fontSize:38,letterSpacing:2,lineHeight:1}}>{DAYS[dow]}</div>
+            <div style={{fontSize:12,color:C.dim,marginTop:2,fontWeight:500}}>{today.getDate()}. {MONTHS[today.getMonth()]} {today.getFullYear()}</div>
+          </div>
+          {acts && <div style={{display:'flex',flexDirection:'column',gap:4,alignItems:'flex-end',marginTop:4}}>
+            {acts.map(a=><span key={a.id} className="wtag" style={{color:a.color,background:`${a.color}15`,border:`1px solid ${a.color}30`,fontSize:11}}>{a.name}</span>)}
+          </div>}
+        </div>
+        {acts && <div style={{marginTop:8}}>
+          <span style={{fontSize:12,color:C.dim,fontWeight:600}}>Start: </span>
+          <span style={{fontSize:12,color:C.text,fontWeight:700}}>{acts[0].time}</span>
+        </div>}
+      </div>
+
+      {/* Rest day */}
+      {!acts && <div style={{margin:'16px 20px 0',padding:'24px',background:C.s1,borderRadius:16,border:`1px solid ${C.border}`,textAlign:'center'}}>
+        <div style={{fontFamily:'Bebas Neue',fontSize:36,letterSpacing:2,color:C.muted}}>Rest Day</div>
+        <div style={{fontSize:12,color:C.dim,marginTop:4}}>Nabijte baterky na zítřek</div>
+      </div>}
+
+      {/* Attendance */}
+      <div className="sec">
+        <div className="sec-hdr"><div className="sec-title">Docházka dnes</div></div>
+        <div style={{background:C.s1,border:`1px solid ${C.border}`,borderRadius:16,padding:'16px'}}>
+          <div className="att-grid">
+            {MEMBERS.map(name=>{
+              const s=statusOf(name);
+              const c=todayCI?.[name];
+              return (
+                <div key={name} className="att-cell">
+                  <Av name={name} size="md" status={s}/>
+                  <div className="att-name" style={{color:statusColor(s)}}>{statusLabel(s)}</div>
+                  {c?.excuseReason && <div style={{fontSize:9,color:C.dim,textAlign:'center',maxWidth:56,lineHeight:1.3}}>{c.excuseReason}</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* My action */}
+      {acts && <div className="sec">
+        <div className="sec-hdr"><div className="sec-title">Tvůj status · {member}</div></div>
+        {!myCI ? (
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn btn-green" style={{flex:2}} onClick={()=>setModal('checkin')}>Odtrénováno</button>
+            <button className="btn btn-ghost" style={{flex:1}} onClick={()=>setModal('absence')}>Omluvenka</button>
+          </div>
+        ) : myCI.status==='present' ? (
+          <div style={{background:`rgba(16,185,129,.08)`,border:`1px solid rgba(16,185,129,.2)`,borderRadius:14,padding:'14px 16px',display:'flex',alignItems:'center',gap:12}}>
+            <div style={{width:36,height:36,borderRadius:'50%',background:`rgba(16,185,129,.15)`,border:`1.5px solid ${C.green}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <Ic.Check size={18}/>
+            </div>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:C.green}}>Odtrénováno{myCI.lateCheckin?' (pozdní)':''}</div>
+              {myCI.log && <div style={{fontSize:11,color:C.dim,marginTop:2}}>Log uložen · +{PTS.log} bodů</div>}
+            </div>
+          </div>
+        ) : (
+          <div style={{background:`rgba(251,191,36,.06)`,border:`1px solid rgba(251,191,36,.2)`,borderRadius:14,padding:'14px 16px'}}>
+            <div style={{fontSize:13,fontWeight:700,color:C.amber}}>Omluven</div>
+            {myCI.excuseReason && <div style={{fontSize:12,color:C.dim,marginTop:2}}>{myCI.excuseReason}</div>}
+          </div>
+        )}
+      </div>}
+
+      {/* Výkony dnes */}
+      {acts && todayCI && Object.values(todayCI).some(c=>c.log) && <div className="sec">
+        <div className="sec-hdr"><div className="sec-title">Dnešní výkony</div></div>
+        <div className="card">
+          {Object.entries(todayCI).filter(([,c])=>c.log).map(([name,c])=>(
+            <div key={name} className="row">
+              <div style={{display:'flex',alignItems:'center',gap:8,flex:1}}>
+                <Av name={name} size="xs"/><div style={{fontSize:13,fontWeight:600}}>{name}</div>
+              </div>
+              <div style={{fontSize:12,color:C.dim}}>
+                {c.log.gymMaxKg&&`${c.log.gymMaxKg} kg `}
+                {c.log.runKm&&`${c.log.runKm} km `}
+                {c.log.runMin&&`${c.log.runMin} min `}
+                {c.log.swimLaps&&`${c.log.swimLaps} délky`}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>}
+
+      {/* Týdenní přehled */}
+      <div className="sec">
+        <div className="sec-hdr"><div className="sec-title">Tento týden</div></div>
+        <div className="card">
+          {[1,2,3,4,5,6].map(d=>{
+            const diff=d-dow;
+            const dayDate=new Date(today); dayDate.setDate(today.getDate()+diff);
+            const sc=SCHEDULE[d];
+            const isTd=diff===0;
+            const isPast=diff<0;
+            return (
+              <div key={d} className="week-row" style={{opacity:diff>0?.45:1}}>
+                <div style={{width:72,fontSize:12,fontWeight:isTd?700:500,color:isTd?C.text:C.dim}}>{DAYS[d]}</div>
+                {!sc
+                  ? <span style={{fontSize:11,color:C.muted,fontWeight:600,letterSpacing:.5}}>REST</span>
+                  : <div style={{display:'flex',gap:5}}>
+                      {sc.map(a=><span key={a.id} style={{fontSize:10,fontWeight:700,color:a.color,background:`${a.color}12`,padding:'3px 8px',borderRadius:20,letterSpacing:.4}}>{a.name.toUpperCase()}</span>)}
+                    </div>
+                }
+                {isTd && <div style={{marginLeft:'auto',width:6,height:6,borderRadius:'50%',background:C.orange,flexShrink:0}}/>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{height:8}}/>
+
+      {modal==='checkin' && acts && <CheckInModal acts={acts} member={member} groupCode={groupCode} dayKey={dayKey} onClose={()=>setModal(null)}/>}
+      {modal==='absence' && <AbsenceModal member={member} groupCode={groupCode} dayKey={dayKey} onClose={()=>setModal(null)}/>}
+    </div>
+  );
+}
+
+// ─── LEADERBOARD VIEW ─────────────────────────────────────────────────────────
+function LeaderboardView({ member, allCI }) {
+  const [period,setPeriod]=useState('month');
+  const data = useMemo(()=>{
+    let ci=allCI;
+    if(period==='month'){
+      const now=new Date();
+      const pfx=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}`;
+      ci=Object.fromEntries(Object.entries(allCI).filter(([k])=>k.startsWith(pfx)));
+    }
+    return MEMBERS.map(m=>({name:m,...score(ci,m)})).sort((a,b)=>b.total-a.total);
+  },[allCI,period]);
+
+  const rankStyle=[
+    {color:'#F59E0B',bg:'rgba(245,158,11,.12)'},
+    {color:'#9CA3AF',bg:'rgba(156,163,175,.08)'},
+    {color:'#CD7F32',bg:'rgba(205,127,50,.08)'},
+    {color:C.dim,bg:'transparent'},
+  ];
+
+  return (
+    <div className="screen fade">
+      <div className="ph">
+        <div className="ph-title">Žebříček</div>
+        <div className="ph-sub">Kdo maká nejvíc</div>
+      </div>
+
+      {/* Period tabs */}
+      <div style={{display:'flex',gap:6,padding:'14px 20px 0'}}>
+        {[{k:'month',l:'Tento měsíc'},{k:'alltime',l:'Celkem'}].map(({k,l})=>(
+          <div key={k} onClick={()=>setPeriod(k)} style={{
+            padding:'6px 16px',borderRadius:20,fontSize:11,fontWeight:700,letterSpacing:.4,cursor:'pointer',
+            background:period===k?C.orange:'#1A1A26',color:period===k?'#fff':C.dim,
+            border:`1px solid ${period===k?C.orange:'#252535'}`,transition:'all .15s'
+          }}>{l}</div>
+        ))}
+      </div>
+
+      {/* Rankings */}
+      <div className="sec">
+        <div style={{background:C.s1,border:`1px solid ${C.border}`,borderRadius:16,overflow:'hidden'}}>
+          {data.map((s,i)=>{
+            const rs=rankStyle[i];
+            const isMe=s.name===member;
+            const multi=streakMulti(s.streak);
+            return (
+              <div key={s.name} className="lb" style={{background:isMe?'rgba(255,107,43,.05)':'transparent',borderBottom:i<3?`1px solid ${C.border}`:'none'}}>
+                <div className="lb-rank" style={{color:rs.color}}>{i+1}.</div>
+                <Av name={s.name} size="md"/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontFamily:'Bebas Neue',fontSize:20,letterSpacing:.5,display:'flex',alignItems:'center',gap:6}}>
+                    {s.name}
+                    {isMe && <span style={{fontSize:10,fontWeight:700,color:C.orange,fontFamily:'Inter',letterSpacing:.3}}>(ty)</span>}
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginTop:2}}>
+                    <div className="fire"><Ic.Flame/>{s.streak}</div>
+                    <span style={{fontSize:11,color:C.dim,fontWeight:500}}>{s.pct}% doch.</span>
+                    {multi>1 && <span style={{fontSize:11,fontWeight:700,color:C.amber,background:'rgba(251,191,36,.1)',padding:'1px 6px',borderRadius:4}}>{multi}×</span>}
+                  </div>
+                </div>
+                <div style={{textAlign:'right',flexShrink:0}}>
+                  <div className="lb-pts" style={{color:i===0?C.amber:C.text}}>{s.total}</div>
+                  <div style={{fontSize:9,color:C.dim,textTransform:'uppercase',letterSpacing:.4}}>bodů</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Points guide */}
+      <div className="sec">
+        <div className="sec-hdr"><div className="sec-title">Bodování</div></div>
+        <div className="card">
+          {[
+            [`Trénink splněn`,`+${PTS.present}`,C.green],
+            [`Log výkonu`,`+${PTS.log}`,C.blue],
+            [`Beaten PR`,`+${PTS.pr}`,C.blue],
+            [`Streak 3–6×`,`×1.5`,C.amber],
+            [`Streak 7–13×`,`×2.0`,C.amber],
+            [`Streak 14–29×`,`×2.5`,C.amber],
+            [`Streak 30+×`,`×3.0`,C.amber],
+            [`Absence bez omluvy`,`−${PTS.penalty}`,C.red],
+          ].map(([lbl,val,col])=>(
+            <div key={lbl} className="row">
+              <div style={{fontSize:13,color:C.dim,flex:1}}>{lbl}</div>
+              <div style={{fontFamily:'Bebas Neue',fontSize:18,color:col,letterSpacing:.5}}>{val}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{height:8}}/>
+    </div>
+  );
+}
+
+// ─── STATS VIEW ───────────────────────────────────────────────────────────────
+function StatsView({ member, groupCode, allCI, prs }) {
+  const [addPR,setAddPR]=useState(false);
+  const s = score(allCI, member);
+  const myPRs = Object.values(prs).filter(p=>p.member===member);
+  const attColor = s.pct>=80?C.green:s.pct>=50?C.amber:C.red;
+
+  return (
+    <div className="screen fade">
+      {/* Profile header */}
+      <div style={{padding:'24px 20px 0',display:'flex',alignItems:'center',gap:16}}>
+        <div className="av av-lg" style={{background:MEMBER_STYLE[member]?.bg,color:MEMBER_STYLE[member]?.color,boxShadow:`0 0 0 3px ${MEMBER_STYLE[member]?.color}40`,flexShrink:0}}>
+          {member.slice(0,2).toUpperCase()}
+        </div>
+        <div>
+          <div style={{fontFamily:'Bebas Neue',fontSize:34,letterSpacing:1.5,lineHeight:1}}>{member}</div>
+          <div style={{fontSize:12,color:C.dim,marginTop:2,fontWeight:500}}>Osobní statistiky</div>
+        </div>
+      </div>
+
+      {/* KPI tiles */}
+      <div style={{display:'flex',gap:8,padding:'16px 20px 0'}}>
+        <div className="stat-tile">
+          <div className="stat-num" style={{color:C.text}}>{s.total}</div>
+          <div className="stat-lbl">Body</div>
+        </div>
+        <div className="stat-tile">
+          <div className="stat-num" style={{color:C.amber}}>{s.streak}</div>
+          <div className="stat-lbl">Streak</div>
+        </div>
+        <div className="stat-tile">
+          <div className="stat-num" style={{color:attColor}}>{s.pct}%</div>
+          <div className="stat-lbl">Docházka</div>
+        </div>
+      </div>
+
+      {/* Attendance progress */}
+      <div className="sec">
+        <div className="card">
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
+            <div style={{fontSize:13,fontWeight:700}}>Docházka</div>
+            <div style={{fontSize:12,color:C.dim}}>{s.attended} / {s.scheduled} tréninků</div>
+          </div>
+          <div className="prog-wrap">
+            <div className="prog-fill" style={{width:`${s.pct}%`,background:attColor}}/>
+          </div>
+          <div style={{display:'flex',justifyContent:'space-between',marginTop:6}}>
+            <div style={{fontSize:10,color:C.dim}}>Cíl: 80%</div>
+            <div style={{fontSize:10,fontWeight:700,color:attColor}}>{s.pct}%</div>
+          </div>
+        </div>
+      </div>
+
+      {/* PRs */}
+      <div className="sec">
+        <div className="sec-hdr">
+          <div className="sec-title">Osobní rekordy</div>
+          <button className="btn btn-ghost" style={{height:32,padding:'0 12px',fontSize:11,gap:4}} onClick={()=>setAddPR(true)}>
+            <Ic.Plus/> Přidat
+          </button>
+        </div>
+        {myPRs.length===0
+          ? <div className="card"><div className="empty"><div className="empty-title">Žádné PR záznamy</div><div className="empty-sub">Zaznamenej svůj první rekord</div></div></div>
+          : <div className="card">
+              {myPRs.map(pr=>(
+                <div key={pr.exercise} className="pr-row">
+                  <div>
+                    <div style={{fontSize:13,fontWeight:600}}>{pr.exercise}</div>
+                    {pr.date && <div style={{fontSize:10,color:C.dim,marginTop:1}}>{pr.date.slice(6,8)}.{pr.date.slice(4,6)}.{pr.date.slice(0,4)}</div>}
+                  </div>
+                  <div style={{textAlign:'right'}}>
+                    <span style={{fontFamily:'Bebas Neue',fontSize:22,color:C.green,letterSpacing:.5}}>{pr.value}</span>
+                    <span style={{fontSize:11,color:C.dim,marginLeft:3}}>{pr.unit}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+        }
+      </div>
+
+      {/* Stats */}
+      <div className="sec">
+        <div className="sec-hdr"><div className="sec-title">Statistiky</div></div>
+        <div className="card">
+          {[
+            ['Celkem bodů', s.total, C.text, ''],
+            ['Aktuální streak', s.streak, C.amber, 'tréninků'],
+            ['Max. streak', s.maxStreak, C.green, 'tréninků'],
+            ['Streak násobič', `${streakMulti(s.streak)}×`, C.amber, ''],
+            ['Odtrénováno', s.attended, C.text, 'tréninků'],
+          ].map(([lbl,val,col,unit])=>(
+            <div key={lbl} className="row">
+              <div style={{fontSize:13,color:C.dim,flex:1}}>{lbl}</div>
+              <div style={{fontFamily:'Bebas Neue',fontSize:20,color:col,letterSpacing:.5}}>{val} <span style={{fontSize:11,fontFamily:'Inter',color:C.dim,fontWeight:400}}>{unit}</span></div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{height:8}}/>
+      {addPR && <AddPRModal member={member} groupCode={groupCode} onClose={()=>setAddPR(false)}/>}
+    </div>
+  );
+}
+
+// ─── TEAM VIEW ────────────────────────────────────────────────────────────────
+function TeamView({ member, allCI, prs }) {
+  const exercises = [...new Set(Object.values(prs).map(p=>p.exercise))];
+  const getPR = (name,ex) => Object.values(prs).find(p=>p.member===name&&p.exercise===ex);
+  const getBest = ex => {
+    const vals=MEMBERS.map(m=>getPR(m,ex)).filter(Boolean).map(p=>p.value);
+    return vals.length?Math.max(...vals):null;
+  };
+  const scores = MEMBERS.map(m=>({name:m,...score(allCI,m)}));
+
+  return (
+    <div className="screen fade">
+      <div className="ph">
+        <div className="ph-title">Tým</div>
+        <div className="ph-sub">Srovnání výkonů</div>
+      </div>
+
+      {/* Team overview table */}
+      <div className="sec">
+        <div className="sec-hdr"><div className="sec-title">Přehled</div></div>
+        <div className="card" style={{overflowX:'auto'}}>
+          {/* member headers */}
+          <div style={{display:'grid',gridTemplateColumns:'80px repeat(4,1fr)',marginBottom:12,paddingBottom:12,borderBottom:`1px solid ${C.border}`}}>
+            <div/>
+            {MEMBERS.map(m=>(
+              <div key={m} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                <Av name={m} size="xs"/>
+                <div style={{fontSize:9,fontWeight:700,letterSpacing:.4,textTransform:'uppercase',color:m===member?MEMBER_STYLE[m]?.color:C.dim}}>{m.slice(0,4)}</div>
+              </div>
+            ))}
+          </div>
+          {[
+            {lbl:'Body',    fn:s=>s.total,                    hi:'max'},
+            {lbl:'Streak',  fn:s=>s.streak,                   hi:'max'},
+            {lbl:'Docházka',fn:s=>`${s.pct}%`,raw:s=>s.pct,  hi:'max'},
+            {lbl:'Tréninky',fn:s=>s.attended,                 hi:'max'},
+          ].map(({lbl,fn,raw,hi})=>{
+            const vals=scores.map(s=>({n:s.name,d:fn(s),r:raw?raw(s):Number(fn(s))||0}));
+            const best=Math.max(...vals.map(v=>v.r));
+            return (
+              <div key={lbl} className="row">
+                <div style={{width:80,fontSize:11,color:C.dim,fontWeight:600,flexShrink:0}}>{lbl}</div>
+                {vals.map(v=>(
+                  <div key={v.n} style={{flex:1,textAlign:'center',fontFamily:'Bebas Neue',fontSize:17,letterSpacing:.3,color:v.r===best&&best>0?C.green:C.dim}}>
+                    {v.d}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* PR comparison */}
+      {exercises.length>0 ? <>
+        <div className="sec">
+          <div className="sec-hdr"><div className="sec-title">Srovnání PR</div></div>
+          <div className="card">
+            <div style={{display:'grid',gridTemplateColumns:'1fr repeat(4,42px)',marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${C.border}`}}>
+              <div style={{fontSize:10,color:C.dim,fontWeight:600}}>CVIČENÍ</div>
+              {MEMBERS.map(m=><div key={m} style={{fontSize:9,fontWeight:700,letterSpacing:.3,textTransform:'uppercase',textAlign:'center',color:m===member?MEMBER_STYLE[m]?.color:C.dim}}>{m.slice(0,3)}</div>)}
+            </div>
+            {exercises.map(ex=>{
+              const best=getBest(ex);
+              return (
+                <div key={ex} style={{display:'grid',gridTemplateColumns:'1fr repeat(4,42px)',padding:'9px 0',borderBottom:`1px solid #181820`,alignItems:'center'}}>
+                  <div style={{fontSize:12,fontWeight:600,color:C.text}}>{ex}</div>
+                  {MEMBERS.map(m=>{
+                    const pr=getPR(m,ex);
+                    return <div key={m} style={{fontFamily:'Bebas Neue',fontSize:16,textAlign:'center',color:pr&&pr.value===best?C.green:pr?C.dim:'#252535'}}>{pr?pr.value:'–'}</div>;
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </> : (
+        <div style={{padding:'0 20px',marginTop:12}}>
+          <div className="card"><div className="empty"><div className="empty-title">Žádné PR záznamy</div><div className="empty-sub">Přidejte první PR v záložce "Já"</div></div></div>
+        </div>
+      )}
+      <div style={{height:8}}/>
+    </div>
+  );
+}
+
+// ─── BOTTOM NAV ───────────────────────────────────────────────────────────────
+function Nav({ tab, setTab }) {
+  const items = [
+    {k:'today',    l:'Dnes',    I:Ic.Cal   },
+    {k:'rank',     l:'Žebříček',I:Ic.Trophy},
+    {k:'me',       l:'Já',      I:Ic.User  },
+    {k:'team',     l:'Tým',     I:Ic.Users },
+  ];
+  return (
+    <div className="nav">
+      {items.map(({k,l,I})=>(
+        <div key={k} className={`nav-btn${tab===k?' on':''}`} onClick={()=>setTab(k)}>
+          <div className="nav-ico"><I/></div>
+          <div className="nav-lbl">{l}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+function MainApp({ member, groupCode }) {
+  const [tab,setTab]=useState('today');
+  const [allCI,setAllCI]=useState({});
+  const [prs,setPRs]=useState({});
+  const [missedModal,setMissedModal]=useState(null);
+
+  const todayCI = allCI[dk()] || {};
+
+  useEffect(()=>{
+    const ch1 = subscribeCIs(groupCode, setAllCI);
+    const ch2 = subscribePRs(groupCode, setPRs);
+    return () => { sb.removeChannel(ch1); sb.removeChannel(ch2); };
+  },[groupCode]);
+
+  useEffect(()=>{
+    if(new Date().getHours()<8) return;
+    const yest=yesterday();
+    if(!hasSched(yest)) return;
+    const key=`mm_${dk(yest)}`;
+    if(localStorage.getItem(key)) return;
+    getOneDayCI(groupCode, dk(yest)).then(data=>{
+      if(!data[member]){
+        setMissedModal({date:yest,acts:SCHEDULE[yest.getDay()]});
+        localStorage.setItem(key,'1');
+      }
+    });
+  },[groupCode,member]);
+
+  return (
+    <>
+      {tab==='today' && <TodayView member={member} groupCode={groupCode} todayCI={todayCI} allCI={allCI}/>}
+      {tab==='rank'  && <LeaderboardView member={member} allCI={allCI}/>}
+      {tab==='me'    && <StatsView member={member} groupCode={groupCode} allCI={allCI} prs={prs}/>}
+      {tab==='team'  && <TeamView member={member} allCI={allCI} prs={prs}/>}
+      <Nav tab={tab} setTab={setTab}/>
+      {missedModal && <MissedModal date={missedModal.date} acts={missedModal.acts} member={member} groupCode={groupCode} onClose={()=>setMissedModal(null)}/>}
+    </>
+  );
+}
+
+// ─── ROOT ─────────────────────────────────────────────────────────────────────
+function App() {
+  const [stage,setStage]=useState('boot');
+  const [code,setCode]=useState('');
+  const [member,setMember]=useState('');
+
+  useEffect(()=>{
+    const sgCode = localStorage.getItem('sgCode');
+    const mem    = localStorage.getItem('sgMember');
+    if(sgCode){
+      setCode(sgCode);
+      if(mem&&MEMBERS.includes(mem)){ setMember(mem); setStage('app'); }
+      else setStage('member');
+    } else {
+      setStage('pin');
+    }
+  },[]);
+
+  if(stage==='boot') return (
+    <div style={{height:'100vh',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:12}}>
+      <div style={{fontFamily:'Bebas Neue',fontSize:36,letterSpacing:3}}>Squad<span style={{color:C.orange}}>.</span>Gym</div>
+      <div style={{fontSize:11,color:C.dim,fontWeight:500}} className="fade">Načítám…</div>
+    </div>
+  );
+
+  if(stage==='pin')    return <PinScreen onDone={c=>{setCode(c);setStage('member');}}/>;
+  if(stage==='member') return <MemberSelect onSelect={m=>{localStorage.setItem('sgMember',m);setMember(m);setStage('app');}}/>;
+  return <MainApp member={member} groupCode={code}/>;
+}
+
+ReactDOM.render(<App/>, document.getElementById('root'));
+</script>
+</body>
+</html>
