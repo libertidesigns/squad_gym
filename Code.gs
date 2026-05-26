@@ -33,6 +33,7 @@ function doPost(e) {
       case 'upsertProgress':  return json(upsertProgress(d));
       case 'upsertSetting':   return json(upsertSetting(d));
       case 'deletePR':        return json(deletePR(d));
+      case 'deactivateChallenge': return json(deactivateChallenge(d));
       default:                return json({ error: 'Neznámá akce: ' + d.action });
     }
   } catch (err) {
@@ -178,6 +179,21 @@ function deletePR(d) {
         String(rows[i][mi]) === String(d.member) &&
         String(rows[i][ei]) === String(d.exercise)) {
       sheet.deleteRow(i + 1);
+      return { ok: true };
+    }
+  }
+  return { ok: false };
+}
+
+function deactivateChallenge(d) {
+  const sheet = getSheet('challenges');
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return { ok: false };
+  const h = rows[0];
+  const ii = h.indexOf('id'), ai = h.indexOf('active');
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][ii]) === String(d.id)) {
+      if (ai !== -1) sheet.getRange(i + 1, ai + 1).setValue(false);
       return { ok: true };
     }
   }

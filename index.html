@@ -460,7 +460,7 @@ function TodayView({gc,member,checkins,profiles,doCI,settings}){
     return null;
   };
 
-  return <div className="screen" style={{padding:'0 16px'}}>
+  return <div className="screen" style={{paddingLeft:16,paddingRight:16}}>
     <div style={{padding:'20px 0 10px'}}>
       <div style={{fontFamily:'Bebas Neue',fontSize:28,letterSpacing:1.5}}>DNES</div>
       <div style={{fontSize:13,color:C.dim}}>{session?`${session.name} · ${session.time}${session.duration?` · ${session.duration} min`:''}`:'Dnes je volno — odpočinek'}</div>
@@ -629,7 +629,7 @@ function ScoreView({gc,member,checkins,profiles,doCI}){
     </div>;
   }
 
-  return <div className="screen" style={{padding:'0 16px'}}>
+  return <div className="screen" style={{paddingLeft:16,paddingRight:16}}>
     <div style={{padding:'20px 0 8px'}}>
       <div style={{fontFamily:'Bebas Neue',fontSize:28,letterSpacing:1.5}}>SKÓRE</div>
       <div style={{fontSize:13,color:C.dim}}>Kdo maká nejvíce</div>
@@ -660,7 +660,7 @@ function ScoreView({gc,member,checkins,profiles,doCI}){
 
     {lpItem&&<LongPressMenu onClose={()=>setLpItem(null)} items={[
       {label:'Upravit poznámku',action:()=>{setEditNote(lpItem.note||'');setEditModal(true);}},
-      {label:'Smazat záznam',danger:true,action:()=>doCI(member,lpItem.date,'none','')},
+      ...(lpItem.date!==todayStr()?[{label:'Smazat záznam',danger:true,action:()=>{doCI(member,lpItem.date,'none','');setLpItem(null);}}]:[]),
     ]}/>}
 
     {editModal&&<div className="overlay" onClick={()=>setEditModal(false)}>
@@ -679,11 +679,12 @@ function ScoreView({gc,member,checkins,profiles,doCI}){
 }
 
 // ── Challenges View ────────────────────────────────────
-function ChallengesView({gc,member,challenges,progress,profiles,doChallenge,doProgress}){
+function ChallengesView({gc,member,challenges,progress,profiles,doChallenge,doProgress,doDeleteChallenge}){
   const [createModal,setCreateModal]=useState(false);
   const [updateModal,setUpdateModal]=useState(null);
+  const [lpChallenge,setLpChallenge]=useState(null);
   const getP=(cid,m)=>progress.find(p=>p.challenge_id===cid&&p.member===m);
-  return <div className="screen" style={{padding:'0 16px'}}>
+  return <div className="screen" style={{paddingLeft:16,paddingRight:16}}>
     <div style={{padding:'20px 0 8px',display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}>
       <div>
         <div style={{fontFamily:'Bebas Neue',fontSize:28,letterSpacing:1.5}}>VÝZVY</div>
@@ -692,11 +693,13 @@ function ChallengesView({gc,member,challenges,progress,profiles,doChallenge,doPr
       <button className="btn btn-primary btn-sm" onClick={()=>setCreateModal(true)}><IcoPlus/>Nová</button>
     </div>
     {challenges.length===0&&<div className="empty-state"><div className="empty-state-title">Zatím žádné výzvy</div><div>Přidej první výzvu pro partu</div></div>}
+    {challenges.length>0&&<div style={{fontSize:12,color:C.dim,marginBottom:8}}>Podrž výzvu pro smazání</div>}
     <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:24}}>
       {challenges.map(ch=>{
         const allP=MEMBERS.map(m=>({m,p:getP(ch.id,m)}));
         const maxVal=ch.target_value||Math.max(...allP.map(x=>x.p?.value||0),1);
-        return <div key={ch.id} className="card">
+        const lpCh=useLongPress(()=>setLpChallenge(ch));
+        return <div key={ch.id} className="card" {...lpCh} style={{userSelect:'none',WebkitUserSelect:'none'}}>
           <div style={{marginBottom:12}}>
             <div style={{fontWeight:700,fontSize:15,marginBottom:2}}>{ch.title}</div>
             {ch.description&&<div style={{fontSize:12,color:C.dim,marginBottom:6}}>{ch.description}</div>}
@@ -729,10 +732,13 @@ function ChallengesView({gc,member,challenges,progress,profiles,doChallenge,doPr
               })}
             </div>
           }
-          <button className="btn btn-secondary btn-sm" style={{marginTop:12,width:'100%'}} onClick={()=>setUpdateModal(ch)}>Aktualizovat můj výsledek</button>
+          <button className="btn btn-secondary btn-sm" style={{marginTop:12,width:'100%'}} onClick={e=>{e.stopPropagation();setUpdateModal(ch);}}>Aktualizovat můj výsledek</button>
         </div>;
       })}
     </div>
+    {lpChallenge&&<LongPressMenu onClose={()=>setLpChallenge(null)} items={[
+      {label:`Smazat výzvu "${lpChallenge.title}"`,danger:true,action:()=>doDeleteChallenge(lpChallenge.id)},
+    ]}/>}
     {createModal&&<CreateChallengeModal gc={gc} member={member} onClose={()=>setCreateModal(false)} doChallenge={doChallenge}/>}
     {updateModal&&<UpdateProgressModal gc={gc} member={member} challenge={updateModal} progress={progress.find(p=>p.challenge_id===updateModal.id&&p.member===member)} onClose={()=>setUpdateModal(null)} doProgress={doProgress}/>}
   </div>;
@@ -863,7 +869,7 @@ function MeView({gc,member,checkins,prs,profiles,doPR,doProfile,doDeletePR}){
     {label:'Výška',val:stats.height?`${stats.height}`:null,unit:'cm'},
   ];
 
-  return <div className="screen" style={{padding:'0 16px'}}>
+  return <div className="screen" style={{paddingLeft:16,paddingRight:16}}>
     <div style={{padding:'20px 0 16px'}}><div style={{fontFamily:'Bebas Neue',fontSize:28,letterSpacing:1.5}}>JÁ</div></div>
 
     {/* Profile card */}
@@ -952,6 +958,7 @@ function Toggle({on,onToggle}){
 // ── Records Section ────────────────────────────────────
 function RecordsSection({prs,profiles,disciplines,doSetting}){
   const [addModal,setAddModal]=useState(false);
+  const [lpDisc,setLpDisc]=useState(null);
   const getAv=m=>profiles.find(p=>p.member===m)?.avatar_data;
 
   const records=disciplines.map(d=>{
@@ -966,20 +973,22 @@ function RecordsSection({prs,profiles,disciplines,doSetting}){
   };
 
   return <div style={{paddingBottom:24}}>
-    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
       <div style={{fontSize:12,color:C.dim,textTransform:'uppercase',letterSpacing:.4}}>Skupinové rekordy</div>
       <button className="btn btn-secondary btn-sm" onClick={()=>setAddModal(true)}><IcoPlus/>Disciplína</button>
     </div>
+    <div style={{fontSize:12,color:C.dim,marginBottom:12}}>Podrž disciplínu pro smazání</div>
     {records.length===0&&<div className="empty-state"><div className="empty-state-title">Žádné disciplíny</div><div>Přidej první disciplínu pro sledování rekordů</div></div>}
     <div style={{display:'flex',flexDirection:'column',gap:10}}>
-      {records.map(r=><div key={r.name} className="card">
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-          <div style={{display:'flex',alignItems:'center',gap:8}}>
+      {records.map(r=>{
+        const lpRec=useLongPress(()=>setLpDisc(r.name));
+        return <div key={r.name} className="card" {...lpRec} style={{userSelect:'none',WebkitUserSelect:'none'}}>
+        <div style={{display:'flex',alignItems:'center',marginBottom:10}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,flex:1}}>
             <span style={{color:C.merlot}}><IcoTrophy/></span>
             <span style={{fontWeight:700,fontSize:15}}>{r.name}</span>
             <span style={{fontSize:12,color:C.dim,background:C.s2,borderRadius:6,padding:'2px 8px'}}>{r.unit}</span>
           </div>
-          <button onClick={()=>removeDisc(r.name)} style={{background:'none',border:'none',cursor:'pointer',color:C.dim,padding:4,display:'flex',alignItems:'center'}}><IcoX/></button>
         </div>
         {r.record
           ?<div style={{display:'flex',alignItems:'center',gap:12,background:C.s2,borderRadius:12,padding:'10px 14px',marginBottom:10}}>
@@ -999,8 +1008,11 @@ function RecordsSection({prs,profiles,disciplines,doSetting}){
             <div style={{fontSize:13,fontWeight:700,color:pr?(r.record&&r.record.member===m?C.merlot:C.text):C.muted}}>{pr?pr.value:'—'}</div>
           </div>)}
         </div>
-      </div>)}
+      </div>;})}
     </div>
+    {lpDisc&&<LongPressMenu onClose={()=>setLpDisc(null)} items={[
+      {label:`Smazat disciplínu "${lpDisc}"`,danger:true,action:()=>removeDisc(lpDisc)},
+    ]}/>}
     {addModal&&<AddDisciplineModal disciplines={disciplines} doSetting={doSetting} onClose={()=>setAddModal(false)}/>}
   </div>;
 }
@@ -1090,7 +1102,7 @@ function SquadView({gc,member,checkins,profiles,prs,settings,doSetting}){
 
   const subTabs=[['clenove','Členové'],['rekordy','Rekordy'],['plan','Plán']];
 
-  return <div className="screen" style={{padding:'0 16px'}}>
+  return <div className="screen" style={{paddingLeft:16,paddingRight:16}}>
     <div style={{padding:'20px 0 12px'}}>
       <div style={{fontFamily:'Bebas Neue',fontSize:28,letterSpacing:1.5}}>PARTA</div>
     </div>
@@ -1208,6 +1220,11 @@ function MainApp({gc,member}){
     apiPost('deletePR',{group_code:gc,member,exercise});
   },[gc]);
 
+  const doDeleteChallenge=useCallback((id)=>{
+    setChallenges(p=>p.filter(c=>c.id!==id));
+    apiPost('deactivateChallenge',{id});
+  },[]);
+
   const doSetting=useCallback((key,value)=>{
     setSettings(p=>[...p.filter(s=>!(s.group_code===gc&&s.key===key)),{group_code:gc,key,value,updated_at:Date.now()}]);
     upsertSettingApi(gc,key,value);
@@ -1242,7 +1259,7 @@ function MainApp({gc,member}){
     {syncing&&<div style={{position:'fixed',top:0,left:0,right:0,height:2,background:C.merlot,zIndex:999,animation:'syncbar 1s linear infinite'}}/>}
     {tab==='dnes'&&<TodayView gc={gc} member={member} checkins={checkins} profiles={profiles} doCI={doCI} settings={settings}/>}
     {tab==='skore'&&<ScoreView gc={gc} member={member} checkins={checkins} profiles={profiles} doCI={doCI}/>}
-    {tab==='vyzvy'&&<ChallengesView gc={gc} member={member} challenges={challenges} progress={progress} profiles={profiles} doChallenge={doChallenge} doProgress={doProgress}/>}
+    {tab==='vyzvy'&&<ChallengesView gc={gc} member={member} challenges={challenges} progress={progress} profiles={profiles} doChallenge={doChallenge} doProgress={doProgress} doDeleteChallenge={doDeleteChallenge}/>}
     {tab==='ja'&&<MeView gc={gc} member={member} checkins={checkins} prs={prs} profiles={profiles} doPR={doPR} doProfile={doProfile} doDeletePR={doDeletePR}/>}
     {tab==='parta'&&<SquadView gc={gc} member={member} checkins={checkins} profiles={profiles} prs={prs} settings={settings} doSetting={doSetting}/>}
     <nav className="nav">
