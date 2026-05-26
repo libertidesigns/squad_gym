@@ -1183,19 +1183,25 @@ function MainApp({gc,member}){
   const [progress,setProgress]=useState([]);
   const [settings,setSettings]=useState([]);
   const [syncing,setSyncing]=useState(false);
+  // Po zápisu blokujeme silent poll na 8s — Apps Script potřebuje čas na zápis
+  const lastWriteRef=useRef(0);
+  const markWrite=()=>{ lastWriteRef.current=Date.now(); };
 
   // Optimistické akce — okamžitě updatují state, zápis jde na pozadí
   const doCI=useCallback((member,date,status,note='')=>{
+    markWrite();
     setCheckins(p=>[...p.filter(c=>!(c.member===member&&c.date===date)),{group_code:gc,member,date,status,note,ts:Date.now()}]);
     upsertCI(gc,member,date,status,note);
   },[gc]);
 
   const doPR=useCallback((member,exercise,value,unit)=>{
+    markWrite();
     setPrs(p=>[...p.filter(r=>!(r.member===member&&r.exercise===exercise)),{group_code:gc,member,exercise,value,unit,date:todayStr(),ts:Date.now()}]);
     upsertPR(gc,member,exercise,value,unit);
   },[gc]);
 
   const doProfile=useCallback((member,fields)=>{
+    markWrite();
     setProfiles(p=>{
       const ex=p.find(r=>r.member===member)||{};
       return [...p.filter(r=>r.member!==member),{...ex,group_code:gc,member,...fields,updated_at:Date.now()}];
@@ -1204,6 +1210,7 @@ function MainApp({gc,member}){
   },[gc]);
 
   const doChallenge=useCallback((data)=>{
+    markWrite();
     const id=mkId();
     setChallenges(p=>[{id,group_code:gc,...data,active:true,created_at:Date.now()},...p]);
     insertChallengeApi(gc,data,id);
@@ -1211,26 +1218,32 @@ function MainApp({gc,member}){
   },[gc]);
 
   const doProgress=useCallback((challengeId,member,value)=>{
+    markWrite();
     setProgress(p=>[...p.filter(r=>!(r.challenge_id===challengeId&&r.member===member)),{challenge_id:challengeId,group_code:gc,member,value,updated_at:Date.now()}]);
     upsertProgress(challengeId,gc,member,value);
   },[gc]);
 
   const doDeletePR=useCallback((member,exercise)=>{
+    markWrite();
     setPrs(p=>p.filter(r=>!(r.member===member&&r.exercise===exercise)));
     apiPost('deletePR',{group_code:gc,member,exercise});
   },[gc]);
 
   const doDeleteChallenge=useCallback((id)=>{
+    markWrite();
     setChallenges(p=>p.filter(c=>c.id!==id));
     apiPost('deactivateChallenge',{id});
   },[]);
 
   const doSetting=useCallback((key,value)=>{
+    markWrite();
     setSettings(p=>[...p.filter(s=>!(s.group_code===gc&&s.key===key)),{group_code:gc,key,value,updated_at:Date.now()}]);
     upsertSettingApi(gc,key,value);
   },[gc]);
 
   const refreshAll=useCallback(async(silent=false)=>{
+    // Po zápisu počkáme 8s než znovu načteme — Apps Script potřebuje čas
+    if(silent&&Date.now()-lastWriteRef.current<8000)return;
     if(!silent)setSyncing(true);
     try{const d=await apiGet(gc);setCheckins(d.checkins||[]);setPrs(d.prs||[]);setProfiles(d.profiles||[]);setChallenges((d.challenges||[]).sort((a,b)=>(b.created_at||0)-(a.created_at||0)));setProgress(d.progress||[]);setSettings(d.settings||[]);}catch(e){console.warn('Sync',e);}
     if(!silent)setSyncing(false);

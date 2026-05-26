@@ -73,13 +73,29 @@ function getSheet(name) {
   return sheet;
 }
 
+// Google Sheets může auto-konvertovat date stringy na Date objekty.
+// Tato funkce je vždy převede zpět na 'YYYY-MM-DD' string.
+function normVal(v) {
+  if (v instanceof Date) {
+    return v.getFullYear() + '-' +
+           String(v.getMonth() + 1).padStart(2, '0') + '-' +
+           String(v.getDate()).padStart(2, '0');
+  }
+  return v;
+}
+
 function sheetRows(sheet) {
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return [];
   const headers = data[0];
   return data.slice(1).map(row => {
     const obj = {};
-    headers.forEach((h, i) => { obj[h] = (row[i] === '' || row[i] === null) ? null : row[i]; });
+    headers.forEach((h, i) => {
+      const v = row[i];
+      if (v === '' || v === null) { obj[h] = null; }
+      else if (v instanceof Date) { obj[h] = normVal(v); }
+      else { obj[h] = v; }
+    });
     return obj;
   });
 }
@@ -121,7 +137,7 @@ function upsertByKeys(sheetName, keyFields, data) {
   for (let i = 1; i < rows.length; i++) {
     if (keyFields.every(k => {
       const idx = sheetHeaders.indexOf(k);
-      return idx !== -1 && String(rows[i][idx]) === String(data[k]);
+      return idx !== -1 && String(normVal(rows[i][idx])) === String(normVal(data[k]));
     })) {
       foundRow = i;
       break;
