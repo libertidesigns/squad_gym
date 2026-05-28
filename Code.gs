@@ -106,6 +106,16 @@ function getAllData(gc) {
   Object.keys(SCHEMA).forEach(name => getSheet(name));
 
   let checkins   = sheetRows(getSheet('checkins')).filter(r => r.group_code === gc);
+  // Deduplikace: pro každou (member+date) kombinaci ponecháme pouze nejnovější záznam
+  {
+    const ciMap = new Map();
+    checkins.forEach(r => {
+      const key = r.member + '|' + r.date;
+      const ex = ciMap.get(key);
+      if (!ex || Number(r.ts || 0) > Number(ex.ts || 0)) ciMap.set(key, r);
+    });
+    checkins = Array.from(ciMap.values());
+  }
   let prs        = sheetRows(getSheet('prs')).filter(r => r.group_code === gc);
   let profiles   = sheetRows(getSheet('profiles')).filter(r => r.group_code === gc);
   let challenges = sheetRows(getSheet('challenges')).filter(r => r.group_code === gc);

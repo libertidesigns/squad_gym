@@ -208,6 +208,39 @@ function calcCurrentStreak(cis,member){
   return s;
 }
 
+// ── Ranking ───────────────────────────────────────────
+const RANKS=[
+  {num:'I',   color:'#6b7280', bg:'rgba(107,114,128,.14)', border:'rgba(107,114,128,.3)'},
+  {num:'II',  color:'#a16207', bg:'rgba(161,98,7,.14)',    border:'rgba(161,98,7,.3)'},
+  {num:'III', color:'#9ca3af', bg:'rgba(156,163,175,.14)', border:'rgba(156,163,175,.3)'},
+  {num:'IV',  color:'#f59e0b', bg:'rgba(245,158,11,.14)',  border:'rgba(245,158,11,.3)'},
+  {num:'V',   color:'#2563eb', bg:'rgba(37,99,235,.14)',   border:'rgba(37,99,235,.3)'},
+  {num:'VI',  color:'#8b5cf6', bg:'rgba(139,92,246,.14)',  border:'rgba(139,92,246,.3)'},
+  {num:'VII', color:'#e53935', bg:'rgba(229,57,53,.14)',   border:'rgba(229,57,53,.3)'},
+];
+// baseRank = floor(score/250); penalizace: -1 rank za každý missed (bez omluvy)
+// nebo excused kde poznámka neobsahuje "nemoc"
+function calcRankIdx(cis,member){
+  const {score}=calcScore(cis,member);
+  const base=Math.floor(Math.max(score,0)/250);
+  const penalty=cis.filter(c=>
+    c.member===member&&isTrainingDay(c.date)&&
+    (c.status==='missed'||(c.status==='excused'&&!(c.note&&c.note.toLowerCase().includes('nemoc'))))
+  ).length;
+  return Math.max(0,Math.min(base-penalty,RANKS.length-1));
+}
+function RankBadge({cis,member,size}){
+  const idx=calcRankIdx(cis,member);
+  const r=RANKS[idx];
+  const big=size==='lg';
+  return <span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',
+    padding:big?'4px 14px':'2px 9px',borderRadius:100,
+    fontSize:big?14:11,fontWeight:700,letterSpacing:.5,
+    background:r.bg,color:r.color,border:`1px solid ${r.border}`,
+    fontFamily:'Bebas Neue',flexShrink:0
+  }}>Rank {r.num}</span>;
+}
+
 // ── Icons ──────────────────────────────────────────────
 const IcoCheck=()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
 const IcoX=()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
@@ -289,7 +322,8 @@ function CustomDatePicker({value,onChange,placeholder='Vyber datum...'}){
 
 // ── CropEditor ─────────────────────────────────────────
 function CropEditor({imageSrc,onCrop,onClose}){
-  const SIZE=240;
+  const SIZE=270;
+  const minScaleRef=useRef(1);
   const canvasRef=useRef(null);
   const imgRef=useRef(null);
   const [offset,setOffset]=useState({x:0,y:0});
@@ -302,10 +336,10 @@ function CropEditor({imageSrc,onCrop,onClose}){
     const img=new Image();
     img.onload=()=>{
       imgRef.current=img;
-      const s=SIZE/Math.min(img.naturalWidth,img.naturalHeight);
-      const initScale=Math.max(s,1);
-      setScale(initScale);
-      setOffset({x:(SIZE-img.naturalWidth*initScale)/2,y:(SIZE-img.naturalHeight*initScale)/2});
+      const minS=SIZE/Math.min(img.naturalWidth,img.naturalHeight);
+      minScaleRef.current=minS;
+      setScale(minS);
+      setOffset({x:(SIZE-img.naturalWidth*minS)/2,y:(SIZE-img.naturalHeight*minS)/2});
       setReady(true);
     };
     img.src=imageSrc;
@@ -329,14 +363,15 @@ function CropEditor({imageSrc,onCrop,onClose}){
     e.preventDefault();
     if(pinch.current.active&&e.touches?.length===2){
       const d=getPinchDist(e);
-      setScale(Math.max(.3,Math.min(6,pinch.current.startScale*(d/pinch.current.dist))));return;
+      setScale(Math.max(minScaleRef.current,Math.min(6,pinch.current.startScale*(d/pinch.current.dist))));return;
     }
     if(!drag.current.active)return;
     const {x,y}=getTD(e);
     setOffset({x:drag.current.ox+(x-drag.current.sx),y:drag.current.oy+(y-drag.current.sy)});
   };
   const onEnd=()=>{drag.current.active=false;pinch.current.active=false;};
-  const zoom=d=>setScale(s=>Math.max(.3,Math.min(6,s+d)));
+  const zoom=d=>setScale(s=>Math.max(minScaleRef.current,Math.min(6,s+d)));
+  const onWheel=e=>{e.preventDefault();zoom(-e.deltaY*0.002);};
 
   const confirm=()=>{
     const out=document.createElement('canvas');out.width=120;out.height=120;
@@ -349,20 +384,16 @@ function CropEditor({imageSrc,onCrop,onClose}){
 
   return <div className="overlay overlay-center" onClick={onClose}>
     <div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth:320,width:'100%'}}>
-      <div style={{fontFamily:'Bebas Neue',fontSize:22,letterSpacing:1,marginBottom:4}}>OŘÍZNI FOTKU</div>
-      <div style={{fontSize:12,color:C.dim,marginBottom:16}}>Táhni pro přesunutí · štípni pro zoom</div>
-      <div style={{display:'flex',justifyContent:'center',marginBottom:14}}>
+      <div style={{fontFamily:'Bebas Neue',fontSize:22,letterSpacing:1,marginBottom:2}}>OŘÍZNI FOTKU</div>
+      <div style={{fontSize:12,color:C.dim,marginBottom:14}}>Táhni pro posun · štípni nebo kolečko myši pro zoom</div>
+      <div style={{display:'flex',justifyContent:'center',marginBottom:20}}>
         <div style={{width:SIZE,height:SIZE,borderRadius:'50%',overflow:'hidden',border:`3px solid ${C.merlot}`,flexShrink:0}}>
           <canvas ref={canvasRef} width={SIZE} height={SIZE} className="crop-canvas"
             onMouseDown={onStart} onMouseMove={onMove} onMouseUp={onEnd} onMouseLeave={onEnd}
             onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onEnd}
+            onWheel={onWheel}
           />
         </div>
-      </div>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:16,marginBottom:20}}>
-        <button className="btn btn-secondary btn-sm" style={{width:48,minWidth:48,padding:0,fontSize:22,fontWeight:300}} onClick={()=>zoom(-.15)}>−</button>
-        <span style={{fontSize:12,color:C.dim}}>přiblížení</span>
-        <button className="btn btn-secondary btn-sm" style={{width:48,minWidth:48,padding:0,fontSize:22,fontWeight:300}} onClick={()=>zoom(.15)}>+</button>
       </div>
       <div className="btn-row btn-row-2">
         <button className="btn btn-secondary" onClick={onClose}>Zrušit</button>
@@ -565,8 +596,8 @@ function TodayView({gc,member,checkins,profiles,doCI,settings}){
           <div style={{fontSize:12,color:C.dim,textTransform:'uppercase',letterSpacing:.4,marginBottom:4}}>Tvé skóre</div>
           <div style={{fontFamily:'Bebas Neue',fontSize:32,color:C.merlot}}>{score} <span style={{fontSize:16,color:C.dim}}>bodů</span></div>
         </div>
-        <div style={{textAlign:'right'}}>
-          <div style={{fontSize:12,color:C.dim,textTransform:'uppercase',letterSpacing:.4,marginBottom:4}}>Streak</div>
+        <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6}}>
+          <RankBadge cis={checkins} member={member}/>
           <div className="streak-badge" style={{display:'flex',alignItems:'center',gap:4}}><IcoFlame/>{streak}x</div>
         </div>
       </div>
@@ -639,8 +670,9 @@ function ScoreView({gc,member,checkins,profiles,doCI}){
         <div style={{fontFamily:'Bebas Neue',fontSize:20,color:i===0?C.merlot:C.dim,width:24,textAlign:'center'}}>{i+1}</div>
         <Av member={s.m} size={44} avatar={s.av} showStatus checkins={checkins}/>
         <div style={{flex:1}}>
-          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,flexWrap:'wrap'}}>
             <span style={{fontWeight:700,fontSize:15}}>{s.m}</span>
+            <RankBadge cis={checkins} member={s.m}/>
             {s.streak>=3&&<span className="streak-badge" style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:11}}><IcoFlame/>{s.streak}x</span>}
           </div>
           <div className="progress-bar-bg"><div className="progress-bar-fill" style={{width:`${(s.score/maxScore)*100}%`}}/></div>
@@ -696,44 +728,47 @@ function ChallengesView({gc,member,challenges,progress,profiles,doChallenge,doPr
     {challenges.length>0&&<div style={{fontSize:12,color:C.dim,marginBottom:8}}>Podrž výzvu pro smazání</div>}
     <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:24}}>
       {challenges.map(ch=>{
-        const allP=MEMBERS.map(m=>({m,p:getP(ch.id,m)}));
-        const maxVal=ch.target_value||Math.max(...allP.map(x=>x.p?.value||0),1);
-        const lpCh=useLongPress(()=>setLpChallenge(ch));
-        return <div key={ch.id} className="card" {...lpCh} style={{userSelect:'none',WebkitUserSelect:'none'}}>
-          <div style={{marginBottom:12}}>
-            <div style={{fontWeight:700,fontSize:15,marginBottom:2}}>{ch.title}</div>
-            {ch.description&&<div style={{fontSize:12,color:C.dim,marginBottom:6}}>{ch.description}</div>}
-            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-              <span className={`badge ${ch.type==='yesno'?'badge-blue':'badge-dim'}`}>{ch.type==='yesno'?'Ano / Ne':'Vlastní'}</span>
-              {ch.end_date&&<span className="badge badge-dim">{ch.end_date.split('-').reverse().join('. ')}</span>}
+        function ChallengeCard(){
+          const lp=useLongPress(()=>setLpChallenge(ch));
+          const allP=MEMBERS.map(m=>({m,p:getP(ch.id,m)}));
+          const maxVal=ch.target_value||Math.max(...allP.map(x=>x.p?.value||0),1);
+          return <div className="card" {...lp} style={{userSelect:'none',WebkitUserSelect:'none'}}>
+            <div style={{marginBottom:12}}>
+              <div style={{fontWeight:700,fontSize:15,marginBottom:2}}>{ch.title}</div>
+              {ch.description&&<div style={{fontSize:12,color:C.dim,marginBottom:6}}>{ch.description}</div>}
+              <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                <span className={`badge ${ch.type==='yesno'?'badge-blue':'badge-dim'}`}>{ch.type==='yesno'?'Ano / Ne':'Vlastní'}</span>
+                {ch.end_date&&<span className="badge badge-dim">{ch.end_date.split('-').reverse().join('. ')}</span>}
+              </div>
             </div>
-          </div>
-          {ch.type==='yesno'
-            ?<div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
-              {allP.map(({m,p})=>{
-                const done=p?.value>=1;
-                return <div key={m} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-                  <div style={{position:'relative'}}>
-                    <Av member={m} size={36} avatar={profiles.find(pr=>pr.member===m)?.avatar_data}/>
-                    {done&&<div style={{position:'absolute',bottom:-2,right:-2,width:14,height:14,background:C.green,borderRadius:'50%',border:`2px solid ${C.s1}`,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:8}}><IcoCheck/></div>}
-                  </div>
-                  <div style={{fontSize:10,color:done?C.green:C.dim}}>{m}</div>
-                </div>;
-              })}
-            </div>
-            :<div style={{display:'flex',flexDirection:'column',gap:8}}>
-              {allP.map(({m,p})=>{
-                const val=p?.value||0;
-                return <div key={m} style={{display:'flex',alignItems:'center',gap:10}}>
-                  <Av member={m} size={26} avatar={profiles.find(pr=>pr.member===m)?.avatar_data}/>
-                  <div style={{flex:1}}><div className="progress-bar-bg"><div className="progress-bar-fill" style={{width:`${Math.min((val/maxVal)*100,100)}%`}}/></div></div>
-                  <div style={{fontSize:13,fontWeight:600,width:36,textAlign:'right',color:C.merlot}}>{val}</div>
-                </div>;
-              })}
-            </div>
-          }
-          <button className="btn btn-secondary btn-sm" style={{marginTop:12,width:'100%'}} onClick={e=>{e.stopPropagation();setUpdateModal(ch);}}>Aktualizovat můj výsledek</button>
-        </div>;
+            {ch.type==='yesno'
+              ?<div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+                {allP.map(({m,p})=>{
+                  const done=p?.value>=1;
+                  return <div key={m} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                    <div style={{position:'relative'}}>
+                      <Av member={m} size={36} avatar={profiles.find(pr=>pr.member===m)?.avatar_data}/>
+                      {done&&<div style={{position:'absolute',bottom:-2,right:-2,width:14,height:14,background:C.green,borderRadius:'50%',border:`2px solid ${C.s1}`,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:8}}><IcoCheck/></div>}
+                    </div>
+                    <div style={{fontSize:10,color:done?C.green:C.dim}}>{m}</div>
+                  </div>;
+                })}
+              </div>
+              :<div style={{display:'flex',flexDirection:'column',gap:8}}>
+                {allP.map(({m,p})=>{
+                  const val=p?.value||0;
+                  return <div key={m} style={{display:'flex',alignItems:'center',gap:10}}>
+                    <Av member={m} size={26} avatar={profiles.find(pr=>pr.member===m)?.avatar_data}/>
+                    <div style={{flex:1}}><div className="progress-bar-bg"><div className="progress-bar-fill" style={{width:`${Math.min((val/maxVal)*100,100)}%`}}/></div></div>
+                    <div style={{fontSize:13,fontWeight:600,width:36,textAlign:'right',color:C.merlot}}>{val}</div>
+                  </div>;
+                })}
+              </div>
+            }
+            <button className="btn btn-secondary btn-sm" style={{marginTop:12,width:'100%'}} onClick={e=>{e.stopPropagation();setUpdateModal(ch);}}>Aktualizovat můj výsledek</button>
+          </div>;
+        }
+        return <ChallengeCard key={ch.id}/>;
       })}
     </div>
     {lpChallenge&&<LongPressMenu onClose={()=>setLpChallenge(null)} items={[
@@ -828,7 +863,7 @@ function StatsModal({profile,member,gc,onClose,doProfile}){
 }
 
 // ── Me View ────────────────────────────────────────────
-function MeView({gc,member,checkins,prs,profiles,doPR,doProfile,doDeletePR}){
+function MeView({gc,member,checkins,prs,profiles,doPR,doProfile,doDeletePR,settings}){
   const fileRef=useRef();
   const [prModal,setPrModal]=useState(false);
   const [statsModal,setStatsModal]=useState(false);
@@ -840,8 +875,23 @@ function MeView({gc,member,checkins,prs,profiles,doPR,doProfile,doDeletePR}){
   const av=profile?.avatar_data;
   const stats=profile?.stats_json?JSON.parse(profile.stats_json):{};
   const {score,streak}=calcScore(checkins,member);
+  const rankIdx=calcRankIdx(checkins,member);
   const total=checkins.filter(c=>c.member===member&&(c.status==='done'||c.status==='pr')).length;
   const myPRs=prs.filter(p=>p.member===member).sort((a,b)=>a.exercise>b.exercise?1:-1);
+
+  // Disciplíny z nastavení (propojení s Rekordy)
+  const discJson=settings?.find(s=>s.key==='disciplines')?.value;
+  const disciplines=discJson?JSON.parse(discJson):DEFAULT_DISCIPLINES;
+
+  // Proper component — fix hooks-in-map bug
+  function PRRow({pr}){
+    const lp=useLongPress(()=>setLpPR(pr));
+    return <div {...lp} className="card" style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',userSelect:'none',WebkitUserSelect:'none'}}>
+      <div style={{color:C.merlot}}><IcoTrophy/></div>
+      <div style={{flex:1}}><div style={{fontWeight:600,fontSize:14}}>{pr.exercise}</div><div style={{fontSize:12,color:C.dim}}>{pr.date}</div></div>
+      <div style={{fontFamily:'Bebas Neue',fontSize:22,color:C.merlot}}>{pr.value} <span style={{fontSize:14,color:C.dim}}>{pr.unit}</span></div>
+    </div>;
+  }
 
   const handleFileSelect=e=>{
     const file=e.target.files?.[0];if(!file)return;
@@ -857,11 +907,8 @@ function MeView({gc,member,checkins,prs,profiles,doPR,doProfile,doDeletePR}){
   };
 
   const unitOpts=[{value:'kg',label:'kg'},{value:'opak.',label:'opak.'},{value:'min',label:'min'},{value:'km',label:'km'},{value:'sec',label:'sec'}];
-  const exOpts=[
-    {value:'Bench press',label:'Bench press'},{value:'Dřep',label:'Dřep'},{value:'Mrtvý tah',label:'Mrtvý tah'},
-    {value:'Kliky',label:'Kliky'},{value:'Shyby',label:'Shyby'},{value:'Běh',label:'Běh'},
-    {value:'Plavání',label:'Plavání'},{value:'Jiné',label:'Jiné'},
-  ];
+  // Cvičení = disciplíny přidané v Parta → Rekordy
+  const exOpts=disciplines.map(d=>({value:d.name,label:d.name}));
 
   const statTiles=[
     {label:'Věk',val:stats.age?`${stats.age} let`:null,unit:''},
@@ -881,7 +928,10 @@ function MeView({gc,member,checkins,prs,profiles,doPR,doProfile,doDeletePR}){
       </div>
       <div style={{flex:1}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:26,letterSpacing:1}}>{member}</div>
-        <div style={{fontSize:13,color:C.dim}}>Squad Gym člen</div>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginTop:4}}>
+          <RankBadge cis={checkins} member={member}/>
+          <span style={{fontSize:12,color:C.dim}}>Squad Gym</span>
+        </div>
       </div>
     </div>
 
@@ -897,10 +947,10 @@ function MeView({gc,member,checkins,prs,profiles,doPR,doProfile,doDeletePR}){
     </button>
 
     {/* Score strip */}
-    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:16}}>
-      {[{label:'Skóre',val:score,color:C.merlot},{label:'Streak',val:`${streak}x`,color:C.text},{label:'Tréninků',val:total,color:C.text}].map(({label,val,color})=><div key={label} className="card" style={{textAlign:'center',padding:'14px 8px'}}>
-        <div style={{fontFamily:'Bebas Neue',fontSize:28,color}}>{val}</div>
-        <div style={{fontSize:11,color:C.dim,textTransform:'uppercase',letterSpacing:.4}}>{label}</div>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:8,marginBottom:16}}>
+      {[{label:'Skóre',val:score,color:C.merlot},{label:'Streak',val:`${streak}x`,color:C.text},{label:'Tréninků',val:total,color:C.text},{label:'Rank',val:RANKS[rankIdx].num,color:RANKS[rankIdx].color}].map(({label,val,color})=><div key={label} className="card" style={{textAlign:'center',padding:'12px 6px'}}>
+        <div style={{fontFamily:'Bebas Neue',fontSize:26,color}}>{val}</div>
+        <div style={{fontSize:10,color:C.dim,textTransform:'uppercase',letterSpacing:.4}}>{label}</div>
       </div>)}
     </div>
 
@@ -911,15 +961,9 @@ function MeView({gc,member,checkins,prs,profiles,doPR,doProfile,doDeletePR}){
     </div>
     {myPRs.length===0&&<div style={{color:C.dim,fontSize:13,textAlign:'center',padding:'20px 0',marginBottom:16}}>Zatím žádné osobáky. Začni makat!</div>}
     <div style={{fontSize:12,color:C.dim,marginBottom:10}}>Podrž pro úpravu nebo smazání</div>
+    {exOpts.length===0&&<div style={{color:C.dim,fontSize:13,textAlign:'center',padding:'12px 0',marginBottom:8}}>Nejdřív přidej disciplíny v Parta → Rekordy</div>}
     <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:24}}>
-      {myPRs.map(pr=>{
-        const lp=useLongPress(()=>setLpPR(pr));
-        return <div key={pr.exercise} {...lp} className="card" style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',userSelect:'none',WebkitUserSelect:'none'}}>
-          <div style={{color:C.merlot}}><IcoTrophy/></div>
-          <div style={{flex:1}}><div style={{fontWeight:600,fontSize:14}}>{pr.exercise}</div><div style={{fontSize:12,color:C.dim}}>{pr.date}</div></div>
-          <div style={{fontFamily:'Bebas Neue',fontSize:22,color:C.merlot}}>{pr.value} <span style={{fontSize:14,color:C.dim}}>{pr.unit}</span></div>
-        </div>;
-      })}
+      {myPRs.map(pr=><PRRow key={pr.exercise} pr={pr}/>)}
     </div>
 
     {lpPR&&<LongPressMenu onClose={()=>setLpPR(null)} items={[
@@ -931,7 +975,7 @@ function MeView({gc,member,checkins,prs,profiles,doPR,doProfile,doDeletePR}){
       <div className="modal" onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:360}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:22,letterSpacing:1,marginBottom:4}}>NOVÝ OSOBÁK</div>
         <div style={{fontSize:13,color:C.dim,marginBottom:20}}>Zaznamenej svůj personal record</div>
-        <div style={{marginBottom:14}}><label>Cvičení</label><CustomSelect value={exercise} onChange={setExercise} options={exOpts} placeholder="Vyber cvičení..."/></div>
+        <div style={{marginBottom:14}}><label>Cvičení</label><CustomSelect value={exercise} onChange={v=>{setExercise(v);const d=disciplines.find(x=>x.name===v);if(d)setPrUnit(d.unit);}} options={exOpts} placeholder="Vyber disciplínu z Rekordy..."/></div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:20}}>
           <div><label>Hodnota</label><input type="number" placeholder="0" value={prVal} onChange={e=>setPrVal(e.target.value)}/></div>
           <div><label>Jednotka</label><CustomSelect value={prUnit} onChange={setPrUnit} options={unitOpts}/></div>
@@ -981,34 +1025,38 @@ function RecordsSection({prs,profiles,disciplines,doSetting}){
     {records.length===0&&<div className="empty-state"><div className="empty-state-title">Žádné disciplíny</div><div>Přidej první disciplínu pro sledování rekordů</div></div>}
     <div style={{display:'flex',flexDirection:'column',gap:10}}>
       {records.map(r=>{
-        const lpRec=useLongPress(()=>setLpDisc(r.name));
-        return <div key={r.name} className="card" {...lpRec} style={{userSelect:'none',WebkitUserSelect:'none'}}>
-        <div style={{display:'flex',alignItems:'center',marginBottom:10}}>
-          <div style={{display:'flex',alignItems:'center',gap:8,flex:1}}>
-            <span style={{color:C.merlot}}><IcoTrophy/></span>
-            <span style={{fontWeight:700,fontSize:15}}>{r.name}</span>
-            <span style={{fontSize:12,color:C.dim,background:C.s2,borderRadius:6,padding:'2px 8px'}}>{r.unit}</span>
-          </div>
-        </div>
-        {r.record
-          ?<div style={{display:'flex',alignItems:'center',gap:12,background:C.s2,borderRadius:12,padding:'10px 14px',marginBottom:10}}>
-            <Av member={r.record.member} size={40} avatar={getAv(r.record.member)}/>
-            <div style={{flex:1}}>
-              <div style={{fontSize:11,color:C.dim,textTransform:'uppercase',letterSpacing:.4,marginBottom:1}}>Rekord</div>
-              <div style={{fontWeight:700,fontSize:15}}>{r.record.member}</div>
+        function DiscCard(){
+          const lp=useLongPress(()=>setLpDisc(r.name));
+          return <div className="card" {...lp} style={{userSelect:'none',WebkitUserSelect:'none'}}>
+            <div style={{display:'flex',alignItems:'center',marginBottom:10}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,flex:1}}>
+                <span style={{color:C.merlot}}><IcoTrophy/></span>
+                <span style={{fontWeight:700,fontSize:15}}>{r.name}</span>
+                <span style={{fontSize:12,color:C.dim,background:C.s2,borderRadius:6,padding:'2px 8px'}}>{r.unit}</span>
+              </div>
             </div>
-            <div style={{fontFamily:'Bebas Neue',fontSize:30,color:C.merlot,lineHeight:1}}>{r.record.value}<span style={{fontSize:14,color:C.dim,marginLeft:4}}>{r.unit}</span></div>
-          </div>
-          :<div style={{fontSize:13,color:C.dim,textAlign:'center',padding:'10px 0',marginBottom:6}}>Zatím bez rekordu — zaloguj PR</div>
+            {r.record
+              ?<div style={{display:'flex',alignItems:'center',gap:12,background:C.s2,borderRadius:12,padding:'10px 14px',marginBottom:10}}>
+                <Av member={r.record.member} size={40} avatar={getAv(r.record.member)}/>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:11,color:C.dim,textTransform:'uppercase',letterSpacing:.4,marginBottom:1}}>Rekord</div>
+                  <div style={{fontWeight:700,fontSize:15}}>{r.record.member}</div>
+                </div>
+                <div style={{fontFamily:'Bebas Neue',fontSize:30,color:C.merlot,lineHeight:1}}>{r.record.value}<span style={{fontSize:14,color:C.dim,marginLeft:4}}>{r.unit}</span></div>
+              </div>
+              :<div style={{fontSize:13,color:C.dim,textAlign:'center',padding:'10px 0',marginBottom:6}}>Zatím bez rekordu — zaloguj PR</div>
+            }
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
+              {r.memberVals.map(({m,pr})=><div key={m} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                <Av member={m} size={28} avatar={getAv(m)}/>
+                <div style={{fontSize:10,color:C.dim}}>{m}</div>
+                <div style={{fontSize:13,fontWeight:700,color:pr?(r.record&&r.record.member===m?C.merlot:C.text):C.muted}}>{pr?pr.value:'—'}</div>
+              </div>)}
+            </div>
+          </div>;
         }
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
-          {r.memberVals.map(({m,pr})=><div key={m} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-            <Av member={m} size={28} avatar={getAv(m)}/>
-            <div style={{fontSize:10,color:C.dim}}>{m}</div>
-            <div style={{fontSize:13,fontWeight:700,color:pr?(r.record&&r.record.member===m?C.merlot:C.text):C.muted}}>{pr?pr.value:'—'}</div>
-          </div>)}
-        </div>
-      </div>;})}
+        return <DiscCard key={r.name}/>;
+      })}
     </div>
     {lpDisc&&<LongPressMenu onClose={()=>setLpDisc(null)} items={[
       {label:`Smazat disciplínu "${lpDisc}"`,danger:true,action:()=>removeDisc(lpDisc)},
@@ -1118,8 +1166,9 @@ function SquadView({gc,member,checkins,profiles,prs,settings,doSetting}){
         <div style={{display:'flex',alignItems:'center',gap:12}}>
           <Av member={s.m} size={48} avatar={s.av} showStatus checkins={checkins}/>
           <div style={{flex:1}}>
-            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,flexWrap:'wrap'}}>
               <span style={{fontWeight:700,fontSize:15}}>{s.m}</span>
+              <RankBadge cis={checkins} member={s.m}/>
               {s.streak>=3&&<span className="streak-badge" style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:11}}><IcoFlame/>{s.streak}x</span>}
             </div>
             <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
@@ -1273,7 +1322,7 @@ function MainApp({gc,member}){
     {tab==='dnes'&&<TodayView gc={gc} member={member} checkins={checkins} profiles={profiles} doCI={doCI} settings={settings}/>}
     {tab==='skore'&&<ScoreView gc={gc} member={member} checkins={checkins} profiles={profiles} doCI={doCI}/>}
     {tab==='vyzvy'&&<ChallengesView gc={gc} member={member} challenges={challenges} progress={progress} profiles={profiles} doChallenge={doChallenge} doProgress={doProgress} doDeleteChallenge={doDeleteChallenge}/>}
-    {tab==='ja'&&<MeView gc={gc} member={member} checkins={checkins} prs={prs} profiles={profiles} doPR={doPR} doProfile={doProfile} doDeletePR={doDeletePR}/>}
+    {tab==='ja'&&<MeView gc={gc} member={member} checkins={checkins} prs={prs} profiles={profiles} doPR={doPR} doProfile={doProfile} doDeletePR={doDeletePR} settings={settings}/>}
     {tab==='parta'&&<SquadView gc={gc} member={member} checkins={checkins} profiles={profiles} prs={prs} settings={settings} doSetting={doSetting}/>}
     <nav className="nav">
       {navItems.map(n=><div key={n.id} className={`nav-btn${tab===n.id?' on':''}`} onClick={()=>setTab(n.id)}>
